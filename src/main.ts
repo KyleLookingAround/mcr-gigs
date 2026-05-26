@@ -6,11 +6,18 @@ import { fetchTaste, readTasteCache } from "./data/lastfm";
 import { decorate, render, renderLastfmStatus } from "./render";
 import { downloadIcs } from "./ics";
 import { initEasterEggs, maybeLegendToast } from "./eggs";
-import { byId } from "./dom";
+import { byId, setPressed } from "./dom";
 import type { ForYou, RoomSize } from "./types";
 
 function priceText(): string {
   return state.maxPrice >= PRICE_MAX ? "Any" : `£${state.maxPrice}`;
+}
+
+/** Sync the price slider's value label and the note explaining that
+ *  unknown-price gigs are never hidden by the slider. */
+function updatePriceUI(): void {
+  byId("price-val").textContent = priceText();
+  byId("price-note").textContent = state.maxPrice < PRICE_MAX ? "incl. unknown prices" : "";
 }
 
 function updateForYouChips(): void {
@@ -24,15 +31,15 @@ function updateForYouChips(): void {
 function applyStateToUI(): void {
   document
     .querySelectorAll<HTMLElement>("[data-window]")
-    .forEach((b) => b.classList.toggle("active", Number(b.dataset.window) === state.window));
+    .forEach((b) => setPressed(b, Number(b.dataset.window) === state.window));
   document
     .querySelectorAll<HTMLElement>("[data-size]")
-    .forEach((b) => b.classList.toggle("active", state.sizes.has(b.dataset.size as RoomSize)));
+    .forEach((b) => setPressed(b, state.sizes.has(b.dataset.size as RoomSize)));
   document
     .querySelectorAll<HTMLElement>("[data-foryou]")
-    .forEach((b) => b.classList.toggle("active", state.foryou.has(b.dataset.foryou as ForYou)));
+    .forEach((b) => setPressed(b, state.foryou.has(b.dataset.foryou as ForYou)));
   byId<HTMLInputElement>("price-range").value = String(state.maxPrice);
-  byId("price-val").textContent = priceText();
+  updatePriceUI();
   byId<HTMLInputElement>("lastfm-user").value = state.lastfm.user;
 }
 
@@ -133,7 +140,7 @@ function bind(): void {
       const s = btn.dataset.size as RoomSize;
       if (state.sizes.has(s)) state.sizes.delete(s);
       else state.sizes.add(s);
-      btn.classList.toggle("active", state.sizes.has(s));
+      setPressed(btn, state.sizes.has(s));
       savePrefs();
       render();
     });
@@ -143,7 +150,7 @@ function bind(): void {
       const f = btn.dataset.foryou as ForYou;
       if (state.foryou.has(f)) state.foryou.delete(f);
       else state.foryou.add(f);
-      btn.classList.toggle("active", state.foryou.has(f));
+      setPressed(btn, state.foryou.has(f));
       render();
     });
   });
@@ -157,7 +164,7 @@ function bind(): void {
   const priceRange = byId<HTMLInputElement>("price-range");
   priceRange.addEventListener("input", (e) => {
     state.maxPrice = Number((e.target as HTMLInputElement).value);
-    byId("price-val").textContent = priceText();
+    updatePriceUI();
     render();
   });
   priceRange.addEventListener("change", savePrefs);

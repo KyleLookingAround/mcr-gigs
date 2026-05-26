@@ -49,4 +49,26 @@ describe("computeMatch", () => {
   it("matches short names of two or more characters", () => {
     expect(computeMatch(gig(["u2 tribute night"]), new Set(["u2"]), new Set())).toBe("you");
   });
+
+  it("matches your artist named only in the description (support slot)", () => {
+    const g = {
+      id: "1",
+      name: "Some Headliner",
+      venue: "",
+      artistsNorm: ["some headliner"],
+      description: "Plus special guest Radiohead and friends.",
+    } as Gig;
+    expect(computeMatch(g, new Set(["radiohead"]), new Set())).toBe("you");
+  });
+
+  it("does not use the description for the noisier similar set", () => {
+    const g = {
+      id: "1",
+      name: "Some Headliner",
+      venue: "",
+      artistsNorm: ["some headliner"],
+      description: "A sound very much in the spirit of Interpol.",
+    } as Gig;
+    expect(computeMatch(g, new Set(), new Set(["interpol"]))).toBeNull();
+  });
 });
