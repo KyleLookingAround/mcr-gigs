@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mcr-gigs.netlify.app/sitemap.xml

@@ -7,44 +7,59 @@ Tune it to your taste: connect your **Last.fm** username and gigs by artists you
 ## Deploy
 
 1. **Get a Skiddle API key.** Free at https://www.skiddle.com/api/join.php — they email it.
-2. **Drop this folder into Netlify.** Either:
-   - Drag the folder onto https://app.netlify.com (Sites → Add new site → Deploy manually), or
-   - `git init && git remote add ... && git push`, then connect the repo on Netlify.
+2. **Connect the repo to Netlify.** Netlify reads `netlify.toml`: it runs `npm run build` and publishes `dist/`. Edge functions in `netlify/edge-functions/` are auto-detected.
 3. **Add the env var(s).** Site → Site configuration → Environment variables → Add a variable:
    - Key: `SKIDDLE_API_KEY`
-   - Value: *(paste your key)*
+   - Value: _(paste your key)_
    - Scopes: leave default (all)
-   - *(Optional)* `LASTFM_API_KEY` — enables the Last.fm taste-matching feature. Free at https://www.last.fm/api/account/create. Without it the rest of the site works fine; only the "Connect Last.fm" box is disabled.
+   - _(Optional)_ `LASTFM_API_KEY` — enables the Last.fm taste-matching feature. Free at https://www.last.fm/api/account/create. Without it the rest of the site works fine; only the "Connect Last.fm" box is disabled.
 4. **Redeploy.** Deploys → Trigger deploy → Deploy site. Edge functions don't pick up new env vars until next deploy.
 
 That's it. Visit the site URL.
 
-## Files
+## Layout
 
-- `index.html` — the whole UI, vanilla JS, no build step
-- `netlify/edge-functions/skiddle.ts` — Skiddle proxy that injects `SKIDDLE_API_KEY`
-- `netlify/edge-functions/lastfm.ts` — Last.fm proxy that injects `LASTFM_API_KEY`
-- `netlify.toml` — minimal config
+- `index.html` — page shell; loads the TypeScript app via Vite
+- `src/` — the app, split into modules (`data/`, `render.ts`, `matching.ts`, `dates.ts`, `ics.ts`, `price.ts`, `venues.ts`, `state.ts`, …). Pure logic has `*.test.ts` unit tests next to it.
+- `public/` — static assets copied as-is: `favicon.svg`, `manifest.webmanifest`, `sw.js` (offline), `_headers` (CSP + security headers), `robots.txt`, `sitemap.xml`
+- `netlify/edge-functions/` — `skiddle.ts` / `lastfm.ts` proxies (shared helpers in `lib/proxy.ts`) that inject API keys, allowlist params, and apply a best-effort rate limit
+- `tests-e2e/` — Playwright smoke test against a mocked API
+- `netlify.toml`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js` — config
 
 ## Personalization (all client-side)
 
-- **Last.fm matching:** type your username in the *Last.fm* box. The app pulls your top artists (and similar artists for "people like me"), flags matching gigs with a `♪ Your artist` / `≈ Similar to yours` badge, and the *For you* filter lets you show only those. Results are cached in `localStorage` for a day.
-- **Saved gigs:** the ☆ on each gig saves it; *For you → ★ Saved* shows your saved list.
+- **Last.fm matching:** type your username in the _Last.fm_ box. The app pulls your top artists (and similar artists for "people like me"), flags matching gigs with a `♪ Your artist` / `≈ Similar to yours` badge, and the _For you_ filter lets you show only those. Results are cached in `localStorage` for a day.
+- **Saved gigs:** the ☆ on each gig saves it; _For you → ★ Saved_ shows your saved list.
 - **Sticky preferences:** window, room sizes, genres, max price, grouping and your Last.fm username persist between visits.
-- **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus *All*). Group results by day or month. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
+- **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus _All_). Group results by day or month. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
 - **Per-gig links:** Spotify & YouTube search, plus Google Calendar / `.ics` export.
 
 ## Local dev
 
 ```bash
-npm i -g netlify-cli
-netlify dev
+npm install
+npm run dev          # Vite dev server (UI only; /api/* needs Netlify)
+netlify dev          # full stack: runs the edge functions + serves the build
 ```
 
-`netlify dev` runs the edge function locally and serves the static site. It'll pick up `SKIDDLE_API_KEY` from a local `.env` file or from your linked Netlify site.
+Use `netlify dev` (install `netlify-cli` first) to exercise the `/api/*` proxies;
+it picks up `SKIDDLE_API_KEY` from a local `.env` file or your linked Netlify site.
+
+## Scripts
+
+```bash
+npm run build        # tsc --noEmit && vite build -> dist/
+npm test             # vitest unit tests
+npm run test:e2e     # playwright smoke test
+npm run lint         # eslint
+npm run format       # prettier --write
+npm run typecheck    # tsc --noEmit
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, unit tests, build, and the E2E test on every PR.
 
 ## Tweaks
 
-- **Search radius:** change `MCR_CENTRE.radius` in `index.html` (miles).
-- **Venue capacity intel:** extend `VENUE_INTEL` in `index.html` — lowercase venue name → capacity.
-- **Cache TTL:** edge cache is 5 min (`cache-control` in the edge function); browser cache is 10 min (`CACHE_TTL_MIN`).
+- **Search radius / centre:** `MCR_CENTRE` in `src/config.ts` (miles).
+- **Venue capacity intel:** extend `VENUE_INTEL` in `src/venues.ts` (lowercase venue name → capacity). Used only as a fallback behind any capacity Skiddle reports.
+- **Cache TTL:** the edge cache (`netlify/edge-functions/*`) and the browser cache (`GIG_CACHE_TTL_MIN` in `src/config.ts`) are both 5 min; keep them in sync.

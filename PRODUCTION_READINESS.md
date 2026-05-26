@@ -17,6 +17,7 @@ unprotected.
 ## 2. Feature triage
 
 ### Keep — these are good
+
 - **Edge-function API-key proxy.** Correct pattern; the key never reaches the
   browser. Keep it, just harden it (§4).
 - **The visual design.** Distinctive editorial look, fast first paint, no build
@@ -28,6 +29,7 @@ unprotected.
 - **Day/month grouping** and **free-text search**.
 
 ### Rework — meh, partially works
+
 - **Window vs Month filter overlap.** "Window" (7–365d) refetches from Skiddle;
   "Month" is a client-side filter over what's loaded. Two controls doing
   near-overlapping jobs is confusing. Pick one mental model.
@@ -44,8 +46,9 @@ unprotected.
   browser" but the edge sends `max-age=300` (5 min).
 
 ### Fix — actually broken
+
 - **Last.fm matching (the headline personalization feature).** Matches artist
-  name tokens against the event *name* string only
+  name tokens against the event _name_ string only
   (`hay.includes(" " + a + " ")`). It misses support acts, festival/multi-act
   bills, and any event whose title doesn't literally contain the artist; the
   `a.length >= 3` guard drops short names (U2, MØ); no structured artist data is
@@ -64,10 +67,11 @@ unprotected.
   rendered.
 
 ### Production gaps (cross-cutting)
+
 - **No tests, no CI, no lint/format, no `package.json`.** Nothing stops a
   regression.
-- **Unprotected proxies.** `lastfm.ts` forwards *any* method and `skiddle.ts`
-  forwards *any* params, both unauthenticated and unthrottled → your API keys
+- **Unprotected proxies.** `lastfm.ts` forwards _any_ method and `skiddle.ts`
+  forwards _any_ params, both unauthenticated and unthrottled → your API keys
   can be used as an open proxy and your quota burned.
 - **No security headers** (CSP, etc.), no rate limiting.
 - **No monitoring / error reporting / analytics.**
@@ -80,8 +84,8 @@ unprotected.
 ## 3. Target architecture
 
 Stay lightweight — a heavy SPA framework would be the wrong call for a page this
-small. The goal is *structure and safety without losing the fast, no-nonsense
-feel.*
+small. The goal is _structure and safety without losing the fast, no-nonsense
+feel._
 
 - **Build:** Vite + TypeScript. Keep output to static assets so hosting stays
   trivial. This buys modules, type-checking, and a test runner with almost no
@@ -98,9 +102,9 @@ feel.*
   ics, dates) and Playwright for one golden-path E2E against a mocked API.
 - **Quality gates:** ESLint + Prettier + `tsc --noEmit`, run in GitHub Actions
   on every PR alongside a Netlify deploy preview.
-- **Data layer:** robust normaliser, bounded *parallel* pagination that tolerates
+- **Data layer:** robust normaliser, bounded _parallel_ pagination that tolerates
   partial failure (return what loaded + a soft warning). Treat venue capacity as
-  *enrichment* layered on top of any capacity Skiddle returns, not the sole
+  _enrichment_ layered on top of any capacity Skiddle returns, not the sole
   signal.
 - **Matching v2:** match against structured artist data first (investigate
   Skiddle's per-event `artists`/lineup fields), fall back to name tokens; better
