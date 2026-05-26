@@ -4,6 +4,7 @@ import { escapeHtml, byId } from "./dom";
 import { gcalLink } from "./ics";
 import { fmtDateHeader, monthLabel } from "./dates";
 import { computeMatch } from "./matching";
+import { LOADING_PHRASES, EMPTY_PHRASES, pickPhrase } from "./phrases";
 
 /** Recompute per-gig saved/match flags. Call after gigs, saved set, or Last.fm
  *  taste data change. */
@@ -214,7 +215,7 @@ export function render(): void {
       : "";
 
   if (state.loading) {
-    results.innerHTML = `<div class="state-screen"><div class="spinner"></div><div class="display">Fetching gigs…</div></div>`;
+    results.innerHTML = `<div class="state-screen"><div class="spinner"></div><div class="display">${escapeHtml(pickPhrase(LOADING_PHRASES))}</div></div>`;
     byId("visible-count").textContent = "—";
     byId("status-meta").textContent = "loading";
     return;
@@ -227,7 +228,7 @@ export function render(): void {
   byId("status-meta").textContent = `next ${state.window} days · ${state.gigs.length} total`;
 
   if (visible.length === 0) {
-    results.innerHTML = `<div class="state-screen"><div class="display">${state.gigs.length === 0 ? "No gigs loaded yet." : "Nothing matches these filters."}</div><div class="small">${state.gigs.length === 0 ? "" : "Try loosening room size or genre."}</div></div>`;
+    results.innerHTML = `<div class="state-screen"><div class="display">${state.gigs.length === 0 ? "No gigs loaded yet." : escapeHtml(pickPhrase(EMPTY_PHRASES))}</div><div class="small">${state.gigs.length === 0 ? "" : "Try loosening room size or genre."}</div></div>`;
     return;
   }
 

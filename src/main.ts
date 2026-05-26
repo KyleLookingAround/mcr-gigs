@@ -5,6 +5,7 @@ import { fetchAllGigs, readCache, writeCache } from "./data/skiddle";
 import { fetchTaste, readTasteCache } from "./data/lastfm";
 import { decorate, render, renderLastfmStatus } from "./render";
 import { downloadIcs } from "./ics";
+import { initEasterEggs, maybeLegendToast } from "./eggs";
 import { byId } from "./dom";
 import type { ForYou, RoomSize } from "./types";
 
@@ -150,6 +151,7 @@ function bind(): void {
   byId<HTMLInputElement>("search-box").addEventListener("input", (e) => {
     state.search = (e.target as HTMLInputElement).value;
     render();
+    maybeLegendToast(state.search);
   });
 
   const priceRange = byId<HTMLInputElement>("price-range");
@@ -219,6 +221,7 @@ function registerServiceWorker(): void {
 loadPrefs();
 bind();
 applyStateToUI();
+initEasterEggs();
 void load();
 if (state.lastfm.user) void connectLastfm(state.lastfm.user);
 registerServiceWorker();
