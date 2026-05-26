@@ -31,7 +31,7 @@ That's it. Visit the site URL.
 - **Last.fm matching:** type your username in the *Last.fm* box. The app pulls your top artists (and similar artists for "people like me"), flags matching gigs with a `♪ Your artist` / `≈ Similar to yours` badge, and the *For you* filter lets you show only those. Results are cached in `localStorage` for a day.
 - **Saved gigs:** the ☆ on each gig saves it; *For you → ★ Saved* shows your saved list.
 - **Sticky preferences:** window, room sizes, genres, max price, grouping and your Last.fm username persist between visits.
-- **Browse by rolling window** (next 7/14/30/60 days) **or pick a specific month**, and group results by day or month. Gigs outside the chosen range are trimmed (Skiddle occasionally returns stray past-dated recurring events).
+- **Window** (next 7/14/30/60 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus *All*). Group results by day or month. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
 - **Per-gig links:** Spotify & YouTube search, plus Google Calendar / `.ics` export.
 
 ## Local dev

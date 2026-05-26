@@ -201,7 +201,7 @@ footer {
     <button class="chip" data-window="30">Next 30d</button>
     <button class="chip" data-window="60">Next 60d</button>
   </div>
-  <div class="filter-row">
+  <div class="filter-row" id="month-row" style="display:none">
     <span class="filter-label">Month</span>
     <div id="month-chips" style="display: contents;"></div>
   </div>
@@ -309,9 +309,8 @@ function sizeBucket(cap) {
 }
 
 const state = {
-  mode: "window",                  // "window" (next N days) | "month" (a picked month)
-  window: 14,
-  month: "",                       // "YYYY-MM" when mode === "month"; set in loadPrefs
+  window: 14,                      // Skiddle fetch window, in days
+  monthFilter: "",                 // "YYYY-MM" to show only that month of loaded gigs; "" = all
   sizes: new Set(["small", "mid", "large", "unknown"]),
   genres: new Set(),
   maxPrice: 60,
@@ -326,7 +325,7 @@ const state = {
 };
 
 function cacheKey() {
-  return state.mode === "month" ? `mcr_gigs_v3_m${state.month}` : `mcr_gigs_v3_w${state.window}`;
+  return `mcr_gigs_v3_w${state.window}`;
 }
 function readCache() {
   try {
@@ -347,15 +346,9 @@ const SAVED_KEY = "mcr_gigs_saved_v1";
 const LASTFM_PREFIX = "mcr_gigs_lastfm_v1_";
 
 function loadPrefs() {
-  const cur = ymOf(new Date());
-  state.month = cur;
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
     if (typeof p.window === "number") state.window = p.window;
-    if (p.mode === "month" || p.mode === "window") state.mode = p.mode;
-    // Only restore a saved month if it isn't already in the past.
-    if (typeof p.month === "string" && p.month >= cur) state.month = p.month;
-    else if (state.mode === "month") state.mode = "window";
     if (Array.isArray(p.sizes)) state.sizes = new Set(p.sizes);
     if (Array.isArray(p.genres)) state.genres = new Set(p.genres);
     if (typeof p.maxPrice === "number") state.maxPrice = p.maxPrice;
@@ -370,9 +363,7 @@ function loadPrefs() {
 function savePrefs() {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
-      mode: state.mode,
       window: state.window,
-      month: state.month,
       sizes: [...state.sizes],
       genres: [...state.genres],
       maxPrice: state.maxPrice,
@@ -558,39 +549,19 @@ function downloadIcs(g) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Local-timezone "YYYY-MM" (toISOString would shift across the day boundary).
-function ymOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
-
-function monthRange(ym) {
+// Label a "YYYY-MM" key for the month-filter chips, e.g. "May" or "Jan 27".
+function monthLabel(ym) {
   const [y, m] = ym.split("-").map(Number);
-  const last = String(new Date(y, m, 0).getDate()).padStart(2, "0");
-  return { first: `${ym}-01`, last: `${ym}-${last}` };
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString("en-GB", { month: "short" }) +
+    (y !== new Date().getFullYear() ? " " + String(y).slice(2) : "");
 }
 
 // The [minDate, maxDate] window we ask Skiddle for and trim results to.
 function dateRange() {
   const todayIso = new Date().toISOString().slice(0, 10);
-  if (state.mode === "month") {
-    const { first, last } = monthRange(state.month);
-    return { minDate: first < todayIso ? todayIso : first, maxDate: last };
-  }
   const end = new Date(Date.now() + state.window * 86400000).toISOString().slice(0, 10);
   return { minDate: todayIso, maxDate: end };
-}
-
-// The next `n` months as { ym, label } for the month picker.
-function monthOptions(n = 9) {
-  const out = [];
-  const now = new Date();
-  const thisYear = now.getFullYear();
-  const d = new Date(now.getFullYear(), now.getMonth(), 1);
-  for (let i = 0; i < n; i++) {
-    const label = d.toLocaleDateString("en-GB", { month: "short" }) +
-      (d.getFullYear() !== thisYear ? " " + String(d.getFullYear()).slice(2) : "");
-    out.push({ ym: ymOf(d), label });
-    d.setMonth(d.getMonth() + 1);
-  }
-  return out;
 }
 
 async function fetchAllGigs() {
@@ -669,6 +640,7 @@ function filteredGigs() {
   const q = state.search.toLowerCase().trim();
   const fy = state.foryou;
   return state.gigs.filter(g => {
+    if (state.monthFilter && !String(g.date).startsWith(state.monthFilter)) return false;
     if (!state.sizes.has(g.size)) return false;
     if (g.price != null && g.price > state.maxPrice) return false;
     if (state.genres.size > 0 && !g.genres.some(x => state.genres.has(x))) return false;
@@ -789,6 +761,7 @@ function render() {
     return;
   }
 
+  renderMonthChips();
   renderGenreChips();
   const visible = filteredGigs();
   document.getElementById("visible-count").textContent = visible.length;
@@ -860,33 +833,27 @@ async function load({ force = false } = {}) {
   }
 }
 
-// Highlight whichever date control (window chip or month chip) is in effect.
-function syncDateChips() {
-  document.querySelectorAll("[data-window]").forEach(b =>
-    b.classList.toggle("active", state.mode === "window" && parseInt(b.dataset.window, 10) === state.window));
-  document.querySelectorAll("[data-month]").forEach(b =>
-    b.classList.toggle("active", state.mode === "month" && b.dataset.month === state.month));
-}
-
+// Month chips are a client-side filter over already-loaded gigs: one chip per
+// month present in the data, plus "All". Rebuilt on each render.
 function renderMonthChips() {
+  const row = document.getElementById("month-row");
   const container = document.getElementById("month-chips");
-  container.innerHTML = monthOptions(9).map(o =>
-    `<button class="chip" data-month="${o.ym}">${escapeHtml(o.label)}</button>`).join("");
+  const months = [...new Set(state.gigs.map(g => String(g.date).slice(0, 7)))]
+    .filter(m => /^\d{4}-\d{2}$/.test(m)).sort();
+  if (state.monthFilter && !months.includes(state.monthFilter)) state.monthFilter = "";
+  if (months.length <= 1) { state.monthFilter = ""; row.style.display = "none"; return; }
+  row.style.display = "";
+  const chip = (val, label, active) => `<button class="chip ${active ? "active" : ""}" data-month="${val}">${escapeHtml(label)}</button>`;
+  container.innerHTML = chip("", "All", state.monthFilter === "") +
+    months.map(m => chip(m, monthLabel(m), state.monthFilter === m)).join("");
   container.querySelectorAll("[data-month]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.mode = "month";
-      state.month = btn.dataset.month;
-      syncDateChips();
-      savePrefs();
-      load();
-    });
+    btn.addEventListener("click", () => { state.monthFilter = btn.dataset.month; render(); });
   });
-  syncDateChips();
 }
 
 // Reflect persisted state onto the controls (chips, slider, inputs).
 function applyStateToUI() {
-  renderMonthChips();
+  document.querySelectorAll("[data-window]").forEach(b => b.classList.toggle("active", parseInt(b.dataset.window, 10) === state.window));
   document.querySelectorAll("[data-size]").forEach(b => b.classList.toggle("active", state.sizes.has(b.dataset.size)));
   document.querySelectorAll("[data-group]").forEach(b => b.classList.toggle("active", b.dataset.group === state.group));
   document.querySelectorAll("[data-foryou]").forEach(b => b.classList.toggle("active", state.foryou.has(b.dataset.foryou)));
@@ -898,9 +865,9 @@ function applyStateToUI() {
 function bind() {
   document.querySelectorAll("[data-window]").forEach(btn => {
     btn.addEventListener("click", () => {
-      state.mode = "window";
+      document.querySelectorAll("[data-window]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
       state.window = parseInt(btn.dataset.window, 10);
-      syncDateChips();
       savePrefs();
       load();
     });
