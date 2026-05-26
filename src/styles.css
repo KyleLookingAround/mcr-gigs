@@ -585,7 +585,7 @@ footer {
   }
 }
 
-/* ── Map view & gig-crawl planner ─────────────────────────────────────── */
+/* ── Map view ─────────────────────────────────────────────────────────── */
 .view-toggle {
   display: flex;
   gap: 6px;
@@ -604,65 +604,89 @@ footer {
   background: var(--paper-2);
   border-right: 1px solid var(--ink);
 }
-#crawl-panel {
+#map-panel {
   padding: 20px 18px 60px;
   overflow-y: auto;
   max-height: min(72vh, 720px);
 }
-.crawl-head {
+.panel-head {
   font-weight: 900;
   font-size: 26px;
-  margin: 0 0 4px;
+  margin: 0 0 10px;
 }
-.crawl-intro {
-  font-size: 11px;
+#map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--muted);
-  margin: 0 0 16px;
-  line-height: 1.4;
 }
-.crawl-item {
-  display: block;
+#map-legend .lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+}
+.lg-size .dot {
+  background: var(--ink);
+}
+.lg-size .s-small {
+  width: 7px;
+  height: 7px;
+}
+.lg-size .s-large {
+  width: 12px;
+  height: 12px;
+}
+.venue-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  align-items: center;
   width: 100%;
   text-align: left;
   background: transparent;
   border: 1.5px solid var(--ink);
-  border-left-width: 4px;
-  border-left-color: var(--red);
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  padding: 9px 11px;
+  margin-bottom: 8px;
 }
-.crawl-item:hover {
-  background: rgba(200, 52, 28, 0.06);
+.venue-item:hover {
+  background: rgba(26, 23, 20, 0.06);
 }
-.crawl-date {
-  display: block;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
+.venue-item .dot {
+  grid-row: span 2;
 }
-.crawl-route {
-  display: block;
+.venue-name {
   font-family: "Fraunces", serif;
   font-weight: 700;
-  font-size: 16px;
-  line-height: 1.25;
-  margin: 3px 0;
+  font-size: 15px;
+  line-height: 1.2;
 }
-.crawl-meta {
-  display: block;
+.venue-meta {
+  grid-column: 2;
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.crawl-empty,
-.crawl-note {
+.venue-empty,
+.venue-note {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.5;
 }
-.crawl-note {
+.venue-note {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
@@ -699,7 +723,7 @@ footer {
     border-right: none;
     border-bottom: 1px solid var(--ink);
   }
-  #crawl-panel {
+  #map-panel {
     max-height: none;
   }
 }

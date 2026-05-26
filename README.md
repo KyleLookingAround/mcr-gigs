@@ -4,7 +4,7 @@ Static gig finder for Manchester. Hits the Skiddle Events API through a Netlify 
 
 Tune it to your taste: connect your **Last.fm** username and gigs by artists you listen to (and artists similar to them) get flagged and floated to the top. Star gigs to save them, and your filters stick between visits — all in the browser, no account needed. Each gig links out to Spotify/YouTube and exports to Google Calendar or an `.ics` file.
 
-Switch to the **Map** view to see venues plotted across central Manchester, colour-coded by taste match, and a **gig-crawl planner** that suggests nights where you could walk between two or more venues and catch a bit of each set.
+Switch to the **Map** view to see venues plotted across central Manchester: markers are colour-coded by taste match and sized by room capacity, with hover labels and a popup of each venue's upcoming gigs. A side list ranks the venues (matches first, then by gig count) with distance from the city centre — click one to fly straight to it on the map.
 
 ## Deploy
 
@@ -22,7 +22,7 @@ That's it. Visit the site URL.
 ## Layout
 
 - `index.html` — page shell; loads the TypeScript app via Vite
-- `src/` — the app, split into modules (`data/`, `render.ts`, `matching.ts`, `dates.ts`, `ics.ts`, `price.ts`, `venues.ts`, `state.ts`, `geo.ts` (distance + crawl planner), `map.ts` (lazy-loaded Leaflet map view), …). Pure logic has `*.test.ts` unit tests next to it.
+- `src/` — the app, split into modules (`data/`, `render.ts`, `matching.ts`, `dates.ts`, `ics.ts`, `price.ts`, `venues.ts`, `state.ts`, `geo.ts` (distance helpers), `map.ts` (lazy-loaded Leaflet map view), …). Pure logic has `*.test.ts` unit tests next to it.
 - `public/` — static assets copied as-is: `favicon.svg`, `manifest.webmanifest`, `sw.js` (offline), `_headers` (CSP + security headers), `robots.txt`, `sitemap.xml`
 - `netlify/edge-functions/` — `skiddle.ts` / `lastfm.ts` proxies (shared helpers in `lib/proxy.ts`) that inject API keys, allowlist params, and apply a best-effort rate limit
 - `tests-e2e/` — Playwright smoke test against a mocked API

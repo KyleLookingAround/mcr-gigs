@@ -1,19 +1,22 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Gig } from "./types";
+import type { Gig, RoomSize } from "./types";
 import { MCR_CENTRE } from "./config";
-import { planCrawls, type Crawl } from "./geo";
+import { haversineMetres, formatMiles } from "./geo";
 import { byId, escapeHtml } from "./dom";
 import { fmtDateHeader } from "./dates";
 
 const COLOUR = { you: "#c8341c", similar: "#1a7a5e", none: "#1a1714" } as const;
+const SIZE_RADIUS: Record<RoomSize, number> = { small: 6, mid: 8, large: 11, unknown: 6 };
+const SIZE_ORDER: Record<RoomSize, number> = { unknown: 0, small: 1, mid: 2, large: 3 };
 
 let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
-let routeLayer: L.LayerGroup | null = null;
-let routes: L.Polyline[] = [];
+let markers = new Map<string, L.CircleMarker>();
 
 interface VenueGroup {
+  key: string;
+  name: string;
   lat: number;
   lng: number;
   gigs: Gig[];
@@ -28,28 +31,56 @@ function init(): void {
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
-  routeLayer = L.layerGroup().addTo(map);
+  renderLegend();
 
-  byId("crawl-list").addEventListener("click", (e) => {
-    const item = (e.target as HTMLElement).closest<HTMLElement>("[data-crawl]");
+  byId("venue-list").addEventListener("click", (e) => {
+    const item = (e.target as HTMLElement).closest<HTMLElement>("[data-venue]");
     if (!item || !map) return;
-    const line = routes[Number(item.dataset.crawl)];
-    if (!line) return;
-    map.fitBounds(line.getBounds().pad(0.3));
-    routes.forEach((r) => r.setStyle({ weight: 3, opacity: 0.45 }));
-    line.setStyle({ weight: 5, opacity: 0.95 });
-    line.bringToFront();
+    const marker = markers.get(item.dataset.venue!);
+    if (!marker) return;
+    map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.4 });
+    marker.openPopup();
   });
 }
 
-function venueColour(gigs: Gig[]): string {
-  if (gigs.some((g) => g.match === "you")) return COLOUR.you;
-  if (gigs.some((g) => g.match === "similar")) return COLOUR.similar;
-  return COLOUR.none;
+function renderLegend(): void {
+  byId("map-legend").innerHTML = `
+    <span class="lg"><i class="dot" style="background:${COLOUR.you}"></i>Your artist</span>
+    <span class="lg"><i class="dot" style="background:${COLOUR.similar}"></i>Similar</span>
+    <span class="lg"><i class="dot" style="background:${COLOUR.none}"></i>Other</span>
+    <span class="lg lg-size"><i class="dot s-small"></i><i class="dot s-large"></i>Room size</span>`;
+}
+
+function venueMatch(gigs: Gig[]): keyof typeof COLOUR {
+  if (gigs.some((g) => g.match === "you")) return "you";
+  if (gigs.some((g) => g.match === "similar")) return "similar";
+  return "none";
+}
+
+function venueSize(gigs: Gig[]): RoomSize {
+  return gigs.reduce<RoomSize>(
+    (best, g) => (SIZE_ORDER[g.size] > SIZE_ORDER[best] ? g.size : best),
+    "unknown",
+  );
+}
+
+function groupByVenue(gigs: Gig[]): VenueGroup[] {
+  const map = new Map<string, VenueGroup>();
+  for (const g of gigs) {
+    if (g.lat == null || g.lng == null) continue;
+    const key = `${g.lat.toFixed(4)},${g.lng.toFixed(4)}`;
+    let group = map.get(key);
+    if (!group) {
+      group = { key, name: g.venue || "Venue", lat: g.lat, lng: g.lng, gigs: [] };
+      map.set(key, group);
+    }
+    group.gigs.push(g);
+  }
+  return [...map.values()];
 }
 
 function venuePopup(group: VenueGroup): string {
-  const head = `<strong>${escapeHtml(group.gigs[0].venue || "Venue")}</strong>`;
+  const head = `<strong>${escapeHtml(group.name)}</strong>`;
   const rows = group.gigs
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date) || a.door.localeCompare(b.door))
@@ -62,73 +93,62 @@ function venuePopup(group: VenueGroup): string {
   return `<div class="map-pop">${head}<ul>${rows}</ul></div>`;
 }
 
-function groupByVenue(gigs: Gig[]): VenueGroup[] {
-  const map = new Map<string, VenueGroup>();
-  for (const g of gigs) {
-    if (g.lat == null || g.lng == null) continue;
-    const key = `${g.lat.toFixed(4)},${g.lng.toFixed(4)}`;
-    let group = map.get(key);
-    if (!group) {
-      group = { lat: g.lat, lng: g.lng, gigs: [] };
-      map.set(key, group);
-    }
-    group.gigs.push(g);
-  }
-  return [...map.values()];
-}
-
-function crawlItem(c: Crawl, i: number): string {
-  const venues = c.gigs.map((g) => escapeHtml(g.venue || "?")).join(" → ");
-  const km = (c.totalMetres / 1000).toFixed(1);
-  return `<button class="crawl-item" data-crawl="${i}">
-    <span class="crawl-date">${escapeHtml(fmtDateHeader(c.date))}</span>
-    <span class="crawl-route">${venues}</span>
-    <span class="crawl-meta">${c.gigs.length} stops · ${km} km · ~${c.walkMins} min walk</span>
+function venueItem(group: VenueGroup): string {
+  const match = venueMatch(group.gigs);
+  const dist = formatMiles(haversineMetres(MCR_CENTRE.lat, MCR_CENTRE.lng, group.lat, group.lng));
+  const n = group.gigs.length;
+  return `<button class="venue-item" data-venue="${escapeHtml(group.key)}">
+    <i class="dot" style="background:${COLOUR[match]}"></i>
+    <span class="venue-name">${escapeHtml(group.name)}</span>
+    <span class="venue-meta">${n} gig${n === 1 ? "" : "s"} · ${dist}</span>
   </button>`;
 }
 
-function renderCrawlPanel(crawls: Crawl[], hidden: number): void {
-  const list = byId("crawl-list");
+function renderVenueList(groups: VenueGroup[], hidden: number): void {
+  const list = byId("venue-list");
   const note =
     hidden > 0
-      ? `<p class="crawl-note">${hidden} gig${hidden === 1 ? "" : "s"} not shown — no map location from the source.</p>`
+      ? `<p class="venue-note">${hidden} gig${hidden === 1 ? "" : "s"} not shown — no map location from the source.</p>`
       : "";
-  if (crawls.length === 0) {
-    list.innerHTML = `<p class="crawl-empty">No walkable multi-venue nights in the current results. Try a wider window or fewer filters.</p>${note}`;
+  if (groups.length === 0) {
+    list.innerHTML = `<p class="venue-empty">No mappable venues in the current results.</p>${note}`;
     return;
   }
-  list.innerHTML = crawls.map(crawlItem).join("") + note;
+  const rank = (g: VenueGroup) => {
+    const m = venueMatch(g.gigs);
+    return m === "you" ? 0 : m === "similar" ? 1 : 2;
+  };
+  const sorted = groups
+    .slice()
+    .sort(
+      (a, b) => rank(a) - rank(b) || b.gigs.length - a.gigs.length || a.name.localeCompare(b.name),
+    );
+  list.innerHTML = sorted.map(venueItem).join("") + note;
 }
 
 function draw(gigs: Gig[]): void {
   if (!map) return;
   markerLayer!.clearLayers();
-  routeLayer!.clearLayers();
-  routes = [];
+  markers = new Map();
 
   const located = gigs.filter((g) => g.lat != null && g.lng != null);
-  for (const group of groupByVenue(located)) {
-    const colour = venueColour(group.gigs);
-    L.circleMarker([group.lat, group.lng], {
-      radius: 7,
+  const groups = groupByVenue(located);
+  for (const group of groups) {
+    const colour = COLOUR[venueMatch(group.gigs)];
+    const marker = L.circleMarker([group.lat, group.lng], {
+      radius: SIZE_RADIUS[venueSize(group.gigs)],
       color: colour,
       weight: 2,
       fillColor: colour,
       fillOpacity: 0.5,
     })
+      .bindTooltip(group.name, { direction: "top" })
       .bindPopup(venuePopup(group))
       .addTo(markerLayer!);
+    markers.set(group.key, marker);
   }
 
-  const crawls = planCrawls(located);
-  crawls.forEach((crawl, i) => {
-    routes[i] = L.polyline(
-      crawl.gigs.map((g) => [g.lat!, g.lng!] as L.LatLngTuple),
-      { color: COLOUR.you, weight: 3, opacity: 0.5, dashArray: "6 7" },
-    ).addTo(routeLayer!);
-  });
-
-  renderCrawlPanel(crawls, gigs.length - located.length);
+  renderVenueList(groups, gigs.length - located.length);
 }
 
 export function update(gigs: Gig[], fit = false): void {
