@@ -524,3 +524,57 @@ footer {
   color: var(--red);
   border-color: var(--red);
 }
+
+#mast-no {
+  cursor: pointer;
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  z-index: 200;
+  max-width: calc(100vw - 40px);
+  padding: 10px 16px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  font-family: "Fraunces", serif;
+  font-style: italic;
+  font-size: 15px;
+  text-align: center;
+  box-shadow: 4px 4px 0 var(--red);
+  transform: translate(-50%, 140%);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+.toast.show {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+.bee {
+  position: fixed;
+  top: -40px;
+  z-index: 150;
+  pointer-events: none;
+  animation-name: bee-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+@keyframes bee-fall {
+  to {
+    transform: translateY(110vh) rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: opacity 0.25s ease;
+  }
+  .bee {
+    display: none;
+  }
+}
