@@ -13,6 +13,8 @@ function gig(overrides: Partial<Gig> = {}): Gig {
     door: "19:30",
     price: null,
     isFree: false,
+    lat: null,
+    lng: null,
     genres: [],
     description: "",
     url: "https://example.com/e/99",

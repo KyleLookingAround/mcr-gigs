@@ -18,6 +18,9 @@ export interface Gig {
   /** Lowest known price in GBP. 0 means free. null means unknown. */
   price: number | null;
   isFree: boolean;
+  /** Venue coordinates, when the upstream reports them. */
+  lat: number | null;
+  lng: number | null;
   genres: string[];
   description: string;
   url: string;
@@ -33,7 +36,12 @@ export interface Gig {
 export interface SkiddleEvent {
   id: string | number;
   eventname?: string;
-  venue?: { name?: string; capacity?: number | string };
+  venue?: {
+    name?: string;
+    capacity?: number | string;
+    latitude?: number | string;
+    longitude?: number | string;
+  };
   openingtimes?: { doorsopen?: string };
   entryprice?: string | number | null;
   genres?: unknown;

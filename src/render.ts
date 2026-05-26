@@ -6,6 +6,13 @@ import { fmtDateHeader, monthLabel } from "./dates";
 import { computeMatch } from "./matching";
 import { LOADING_PHRASES, EMPTY_PHRASES, pickPhrase } from "./phrases";
 
+/** Hook fired at the end of every render so the map view can stay in sync
+ *  without render.ts importing the (heavy, lazy-loaded) Leaflet module. */
+let afterRender: (() => void) | null = null;
+export function setAfterRender(fn: () => void): void {
+  afterRender = fn;
+}
+
 /** Recompute per-gig saved/match flags. Call after gigs, saved set, or Last.fm
  *  taste data change. */
 export function decorate(): void {
@@ -204,6 +211,14 @@ export function renderLastfmStatus(): void {
 }
 
 export function render(): void {
+  const onMap = state.view === "map";
+  byId("results").hidden = onMap;
+  byId("map-view").hidden = !onMap;
+  renderBody();
+  afterRender?.();
+}
+
+function renderBody(): void {
   const results = byId("results");
   results.setAttribute("aria-busy", state.loading ? "true" : "false");
   byId("error-container").innerHTML = state.error

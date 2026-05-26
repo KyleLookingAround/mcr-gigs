@@ -584,3 +584,122 @@ footer {
     display: none;
   }
 }
+
+/* ── Map view & gig-crawl planner ─────────────────────────────────────── */
+.view-toggle {
+  display: flex;
+  gap: 6px;
+}
+#map-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+#map-view[hidden] {
+  display: none;
+}
+#map-el {
+  height: min(72vh, 720px);
+  background: var(--paper-2);
+  border-right: 1px solid var(--ink);
+}
+#crawl-panel {
+  padding: 20px 18px 60px;
+  overflow-y: auto;
+  max-height: min(72vh, 720px);
+}
+.crawl-head {
+  font-weight: 900;
+  font-size: 26px;
+  margin: 0 0 4px;
+}
+.crawl-intro {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 16px;
+  line-height: 1.4;
+}
+.crawl-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  border-left-width: 4px;
+  border-left-color: var(--red);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.crawl-item:hover {
+  background: rgba(200, 52, 28, 0.06);
+}
+.crawl-date {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.crawl-route {
+  display: block;
+  font-family: "Fraunces", serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.25;
+  margin: 3px 0;
+}
+.crawl-meta {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.crawl-empty,
+.crawl-note {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.crawl-note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.map-pop strong {
+  font-family: "Fraunces", serif;
+  font-size: 14px;
+}
+.map-pop ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.map-pop li {
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+.map-pop .pop-when {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.leaflet-container {
+  font-family: "JetBrains Mono", monospace;
+}
+@media (max-width: 720px) {
+  #map-view {
+    grid-template-columns: 1fr;
+  }
+  #map-el {
+    height: 56vh;
+    border-right: none;
+    border-bottom: 1px solid var(--ink);
+  }
+  #crawl-panel {
+    max-height: none;
+  }
+}

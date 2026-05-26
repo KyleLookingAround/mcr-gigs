@@ -10,6 +10,12 @@ function structuredCapacity(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function coord(raw: unknown, max: number): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : parseFloat(String(raw));
+  return Number.isFinite(n) && n !== 0 && Math.abs(n) <= max ? n : null;
+}
+
 function extractGenres(ev: SkiddleEvent): string[] {
   const g = ev.genres ?? ev.genre;
   let out: string[] = [];
@@ -51,6 +57,8 @@ export function normaliseGig(ev: SkiddleEvent): Gig {
     door,
     price,
     isFree,
+    lat: coord(ev.venue?.latitude, 90),
+    lng: coord(ev.venue?.longitude, 180),
     genres: extractGenres(ev),
     description: stripHtml(ev.description || "").slice(0, 240),
     url: ev.link || `https://www.skiddle.com/whats-on/event/${ev.id}/`,
