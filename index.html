@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCR Gigs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f4f0e6;
+  --paper-2: #fdfaf0;
+  --ink:   #1a1714;
+  --red:   #c8341c;
+  --muted: rgba(26,23,20,0.6);
+  --line:  rgba(26,23,20,0.25);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.45; }
+.display { font-family: 'Fraunces', serif; font-variation-settings: "opsz" 144; }
+button { font: inherit; cursor: pointer; }
+
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 100;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>");
+  mix-blend-mode: multiply;
+}
+
+header { padding: 28px 20px 20px; border-bottom: 3px solid var(--ink); }
+.mast-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; }
+h1 {
+  font-family: 'Fraunces', serif; font-weight: 900; font-variation-settings: "opsz" 144;
+  font-size: clamp(48px, 13vw, 130px); line-height: 0.85; letter-spacing: -0.04em;
+  margin: 10px 0 0;
+}
+.subhead { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-top: 10px; font-size: 13px; }
+.subhead .italic { font-family: 'Fraunces', serif; font-style: italic; font-size: 17px; }
+.subhead .accent { color: var(--red); font-weight: 700; }
+
+.filters { padding: 16px 20px; border-bottom: 2px solid var(--ink); display: flex; flex-direction: column; gap: 14px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.filter-label { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.chip {
+  display: inline-block; padding: 4px 10px; border: 1.5px solid var(--ink);
+  background: transparent; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  font-weight: 500; transition: all 0.1s;
+}
+.chip:hover { background: rgba(26,23,20,0.06); }
+.chip.active { background: var(--ink); color: var(--paper); }
+.chip.accent.active { background: var(--red); border-color: var(--red); }
+.search-box {
+  flex: 1; min-width: 200px; padding: 8px 12px;
+  background: transparent; border: 1.5px solid var(--ink); font: inherit;
+}
+.search-box:focus { outline: none; border-color: var(--red); }
+.price-control { display: flex; align-items: center; gap: 10px; }
+.price-control input[type=range] { width: 140px; accent-color: var(--red); }
+.refresh-btn {
+  background: var(--ink); color: var(--paper); border: none; padding: 8px 14px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; font-size: 11px;
+}
+.refresh-btn:hover { background: var(--red); }
+
+.status-bar {
+  padding: 12px 20px; display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 1px solid var(--line); font-size: 12px;
+}
+.status-bar .count { font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; }
+.status-bar .count .num { color: var(--red); }
+.status-bar .meta { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
+
+main { padding: 24px 20px 80px; }
+.date-group { margin-bottom: 32px; }
+.date-header {
+  font-family: 'Fraunces', serif; font-weight: 900; font-variation-settings: "opsz" 144;
+  font-size: clamp(28px, 6vw, 40px); line-height: 1; letter-spacing: -0.02em;
+  margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--ink);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.date-header .day-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+.gig {
+  background: var(--paper-2); border: 2px solid var(--ink); margin-bottom: 14px;
+  display: grid; grid-template-columns: 1fr; position: relative;
+}
+@media (min-width: 720px) { .gig { grid-template-columns: 90px 1fr 160px; } }
+.gig.small-room { background: #f5ecd9; }
+.gig.large-room { background: #fdfaf0; }
+
+.gig-time { padding: 14px 16px; border-bottom: 1px dashed var(--line); }
+@media (min-width: 720px) { .gig-time { border-bottom: none; border-right: 1px dashed var(--line); } }
+.gig-time .door-label { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
+.gig-time .door-time { font-family: 'Fraunces', serif; font-weight: 900; font-size: 26px; line-height: 1; font-variation-settings: "opsz" 144; margin-top: 2px; }
+.gig-time .door-sub { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.gig-main { padding: 14px 16px; }
+.gig-venue-line {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+}
+.gig-venue-line .cap { color: var(--red); font-weight: 700; }
+.gig-title {
+  font-family: 'Fraunces', serif; font-weight: 900; font-variation-settings: "opsz" 144;
+  font-size: clamp(20px, 4vw, 28px); line-height: 1.05; letter-spacing: -0.015em; margin: 0;
+}
+.gig-genres { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.gig-genre { font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em; padding: 2px 7px; border: 1px solid var(--line); }
+.gig-desc {
+  font-family: 'Fraunces', serif; font-style: italic; font-size: 13px; line-height: 1.4;
+  margin: 8px 0 0; color: rgba(26,23,20,0.75); max-width: 60ch;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.gig-side {
+  padding: 14px 16px; display: flex; gap: 14px; justify-content: space-between; align-items: flex-end;
+  border-top: 1px dashed var(--line);
+}
+@media (min-width: 720px) {
+  .gig-side { flex-direction: column; align-items: flex-end; justify-content: space-between; border-top: none; border-left: 1px dashed var(--line); }
+}
+.gig-price {
+  font-family: 'Fraunces', serif; font-weight: 900; font-size: 28px; line-height: 1;
+  font-variation-settings: "opsz" 144;
+}
+.gig-price .lbl { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+.buy-btn {
+  display: inline-block; padding: 7px 14px; background: var(--ink); color: var(--paper);
+  text-decoration: none; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700;
+}
+.buy-btn:hover { background: var(--red); }
+
+.state-screen { padding: 60px 20px; text-align: center; }
+.state-screen .display { font-family: 'Fraunces', serif; font-style: italic; font-size: 24px; opacity: 0.7; }
+.state-screen .small { font-size: 12px; color: var(--muted); margin-top: 12px; }
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--red);
+  border-radius: 50%; margin: 0 auto 16px; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-box {
+  background: #fde9e6; border: 2px solid var(--red); padding: 16px 20px; margin: 16px 20px;
+  font-size: 13px;
+}
+.error-box code { background: rgba(0,0,0,0.06); padding: 2px 6px; }
+
+footer {
+  border-top: 3px solid var(--ink); padding: 20px;
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mast-row">
+    <span>№ 001 / Manchester</span>
+    <span id="last-updated">—</span>
+  </div>
+  <h1>MCR&nbsp;GIGS</h1>
+  <div class="subhead">
+    <span class="italic">Live music, this week and next.</span>
+    <span class="accent">Powered by Skiddle</span>
+  </div>
+</header>
+
+<div class="filters">
+  <div class="filter-row">
+    <span class="filter-label">Window</span>
+    <button class="chip" data-window="7">Next 7d</button>
+    <button class="chip active" data-window="14">Next 14d</button>
+    <button class="chip" data-window="30">Next 30d</button>
+    <button class="chip" data-window="60">Next 60d</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">Room size</span>
+    <button class="chip" data-size="small">Small (≤300)</button>
+    <button class="chip" data-size="mid">Mid (300–1200)</button>
+    <button class="chip" data-size="large">Large (1200+)</button>
+    <button class="chip" data-size="unknown">Unknown</button>
+  </div>
+  <div class="filter-row" id="genre-row" style="display:none">
+    <span class="filter-label">Genres</span>
+    <div id="genre-chips" style="display: contents;"></div>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">Search</span>
+    <input type="text" class="search-box" id="search-box" placeholder="artist, venue, anything…">
+    <div class="price-control">
+      <span class="filter-label">Max £<span id="price-val">60</span></span>
+      <input type="range" id="price-range" min="5" max="100" value="60" step="5">
+    </div>
+    <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="count"><span class="num" id="visible-count">0</span> gigs</div>
+  <div class="meta" id="status-meta">—</div>
+</div>
+
+<div id="error-container"></div>
+
+<main id="results"></main>
+
+<footer>
+  <span>Data: Skiddle Events API</span>
+  <span>Proxied through Netlify Edge Functions</span>
+  <span>Cached 5 min at the edge, 10 min in your browser</span>
+</footer>
+
+<script>
+// ============================================================
+// MCR GIGS — Skiddle gig finder, Netlify-hosted
+// API key lives in a Netlify env var (SKIDDLE_API_KEY) and is injected
+// server-side by /api/skiddle. The client never sees it.
+// ============================================================
+
+const API = "/api/skiddle";
+const MCR_CENTRE = { lat: 53.4808, lng: -2.2426, radius: 3 }; // miles
+const CACHE_TTL_MIN = 10;
+
+const VENUE_INTEL = {
+  "deaf institute": 260, "the deaf institute": 260,
+  "yes": 250, "yes basement": 250, "yes pink room": 350, "yes (basement)": 250,
+  "band on the wall": 500,
+  "night & day cafe": 280, "night and day cafe": 280, "night & day": 280,
+  "soup": 250, "soup kitchen": 250,
+  "gullivers": 170,
+  "the castle hotel": 80, "castle hotel": 80,
+  "the peer hat": 90, "peer hat": 90,
+  "the eagle inn": 100, "eagle inn": 100,
+  "new century hall": 1000, "new century": 1000,
+  "aatma": 150,
+  "gorilla": 600,
+  "the ritz": 1500, "o2 ritz": 1500, "manchester o2 ritz": 1500,
+  "manchester academy 1": 2300, "academy 1": 2300,
+  "manchester academy 2": 900, "academy 2": 900,
+  "manchester academy 3": 450, "academy 3": 450,
+  "albert hall": 2000, "manchester albert hall": 2000,
+  "halle st peter's": 300, "halle st peters": 300,
+  "stoller hall": 480, "the stoller hall": 480,
+  "the white hotel": 300, "white hotel": 300,
+  "rebellion": 350, "rebellion manchester": 350,
+  "manchester apollo": 3500, "o2 apollo manchester": 3500, "o2 apollo": 3500,
+  "ao arena": 21000, "manchester ao arena": 21000,
+  "co-op live": 23500, "co op live": 23500,
+  "matt and phreds": 110, "matt & phred's": 110,
+  "the bread shed": 350, "bread shed": 350,
+  "factory international": 1600, "aviva studios": 1600,
+};
+
+function venueCap(name) { return VENUE_INTEL[name.toLowerCase().trim()]; }
+function sizeBucket(cap) {
+  if (cap == null) return "unknown";
+  if (cap <= 300) return "small";
+  if (cap <= 1200) return "mid";
+  return "large";
+}
+
+const state = {
+  window: 14,
+  sizes: new Set(["small", "mid", "large", "unknown"]),
+  genres: new Set(),
+  maxPrice: 60,
+  search: "",
+  gigs: [],
+  loading: false,
+  error: null,
+};
+
+function cacheKey(w) { return `mcr_gigs_v2_${w}`; }
+function readCache(w) {
+  try {
+    const raw = localStorage.getItem(cacheKey(w));
+    if (!raw) return null;
+    const { ts, gigs } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL_MIN * 60 * 1000) return null;
+    return gigs;
+  } catch { return null; }
+}
+function writeCache(w, gigs) {
+  try { localStorage.setItem(cacheKey(w), JSON.stringify({ ts: Date.now(), gigs })); } catch {}
+}
+
+async function fetchAllGigs(daysAhead) {
+  const today = new Date();
+  const end = new Date(today.getTime() + daysAhead * 86400000);
+  const minDate = today.toISOString().slice(0, 10);
+  const maxDate = end.toISOString().slice(0, 10);
+
+  const collected = [];
+  let offset = 0;
+  const limit = 100;
+
+  while (offset < 600) {
+    const params = new URLSearchParams({
+      latitude: String(MCR_CENTRE.lat),
+      longitude: String(MCR_CENTRE.lng),
+      radius: String(MCR_CENTRE.radius),
+      eventcode: "LIVE",
+      minDate, maxDate,
+      description: "1",
+      order: "date",
+      limit: String(limit),
+      offset: String(offset),
+    });
+    const res = await fetch(`${API}?${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status} from /api/skiddle`);
+    const body = await res.json();
+    const batch = body.results || [];
+    collected.push(...batch);
+    if (batch.length < limit) break;
+    offset += limit;
+  }
+  return collected.map(normaliseGig);
+}
+
+function normaliseGig(ev) {
+  const venueName = (ev.venue?.name || "").trim();
+  const cap = venueCap(venueName);
+  const doorRaw = ev.openingtimes?.doorsopen || "";
+  const door = doorRaw ? doorRaw.slice(0, 5) : "";
+  let priceNum = null;
+  if (ev.entryprice != null) {
+    const n = parseFloat(String(ev.entryprice).replace(/[^0-9.]/g, ""));
+    if (Number.isFinite(n)) priceNum = n;
+  }
+  let genres = [];
+  const g = ev.genres || ev.genre;
+  if (Array.isArray(g)) genres = g.map(x => typeof x === "string" ? x : x?.name).filter(Boolean);
+  else if (typeof g === "string") genres = [g];
+  genres = genres.map(s => s.toLowerCase().trim()).filter(Boolean);
+
+  const desc = stripHtml(ev.description || "").slice(0, 240);
+
+  return {
+    id: String(ev.id),
+    name: ev.eventname || venueName,
+    venue: venueName,
+    capacity: cap,
+    size: sizeBucket(cap),
+    date: ev.date,
+    door,
+    price: priceNum,
+    genres,
+    description: desc,
+    url: ev.link || `https://www.skiddle.com/whats-on/event/${ev.id}/`,
+    image: ev.largeimageurl || ev.imageurl || "",
+  };
+}
+
+function stripHtml(s) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = s;
+  return (tmp.textContent || tmp.innerText || "").trim();
+}
+
+function filteredGigs() {
+  const q = state.search.toLowerCase().trim();
+  return state.gigs.filter(g => {
+    if (!state.sizes.has(g.size)) return false;
+    if (g.price != null && g.price > state.maxPrice) return false;
+    if (state.genres.size > 0 && !g.genres.some(x => state.genres.has(x))) return false;
+    if (q) {
+      const hay = (g.name + " " + g.venue + " " + g.genres.join(" ") + " " + g.description).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function groupByDate(gigs) {
+  const map = new Map();
+  for (const g of gigs) {
+    if (!map.has(g.date)) map.set(g.date, []);
+    map.get(g.date).push(g);
+  }
+  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function fmtDateHeader(iso) {
+  const d = new Date(iso);
+  const dow = d.toLocaleDateString("en-GB", { weekday: "long" });
+  return `${dow} ${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "long" })}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderGig(g) {
+  const sizeClass = g.size === "small" ? "small-room" : g.size === "large" ? "large-room" : "";
+  const capLine = g.capacity != null
+    ? `<span class="cap">cap. ${g.capacity}</span>`
+    : `<span>capacity unknown</span>`;
+  const genres = g.genres.slice(0, 4).map(x => `<span class="gig-genre">${escapeHtml(x)}</span>`).join("");
+  const price = g.price != null ? `£${g.price}` : "—";
+  return `
+    <article class="gig ${sizeClass}">
+      <div class="gig-time">
+        <div class="door-label">Doors</div>
+        <div class="door-time">${escapeHtml(g.door || "—")}</div>
+        <div class="door-sub">${g.size === "small" ? "Intimate" : g.size === "mid" ? "Mid-size" : g.size === "large" ? "Big room" : ""}</div>
+      </div>
+      <div class="gig-main">
+        <div class="gig-venue-line">
+          <span>${escapeHtml(g.venue)}</span><span>·</span>${capLine}
+        </div>
+        <h3 class="gig-title">${escapeHtml(g.name)}</h3>
+        ${genres ? `<div class="gig-genres">${genres}</div>` : ""}
+        ${g.description ? `<p class="gig-desc">${escapeHtml(g.description)}</p>` : ""}
+      </div>
+      <div class="gig-side">
+        <div class="gig-price"><span class="lbl">From</span>${price}</div>
+        <a class="buy-btn" href="${escapeHtml(g.url)}" target="_blank" rel="noopener">Tickets</a>
+      </div>
+    </article>
+  `;
+}
+
+function render() {
+  const results = document.getElementById("results");
+  document.getElementById("error-container").innerHTML = state.error ? `
+    <div class="error-box">
+      <strong>Couldn't load gigs.</strong> ${escapeHtml(state.error)}
+      <div style="margin-top:8px; font-size:11px; color:var(--muted)">
+        If this says <code>SKIDDLE_API_KEY not set</code>, add the env var in Netlify → Site settings → Environment variables, then redeploy.
+      </div>
+    </div>` : "";
+
+  if (state.loading) {
+    results.innerHTML = `<div class="state-screen"><div class="spinner"></div><div class="display">Fetching gigs…</div></div>`;
+    document.getElementById("visible-count").textContent = "—";
+    document.getElementById("status-meta").textContent = "loading";
+    return;
+  }
+
+  renderGenreChips();
+  const visible = filteredGigs();
+  document.getElementById("visible-count").textContent = visible.length;
+  document.getElementById("status-meta").textContent = `next ${state.window} days · ${state.gigs.length} total`;
+
+  if (visible.length === 0) {
+    results.innerHTML = `<div class="state-screen"><div class="display">${state.gigs.length === 0 ? "No gigs loaded yet." : "Nothing matches these filters."}</div><div class="small">${state.gigs.length === 0 ? "" : "Try loosening room size or genre."}</div></div>`;
+    return;
+  }
+
+  const grouped = groupByDate(visible);
+  results.innerHTML = grouped.map(([date, gigs]) => `
+    <div class="date-group">
+      <h2 class="date-header"><span>${fmtDateHeader(date)}</span><span class="day-count">${gigs.length} gig${gigs.length === 1 ? "" : "s"}</span></h2>
+      ${gigs.map(renderGig).join("")}
+    </div>
+  `).join("");
+}
+
+function renderGenreChips() {
+  const allGenres = new Map();
+  for (const g of state.gigs) for (const x of g.genres) allGenres.set(x, (allGenres.get(x) || 0) + 1);
+  const top = [...allGenres.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([g]) => g);
+  const row = document.getElementById("genre-row");
+  const container = document.getElementById("genre-chips");
+  if (top.length === 0) { row.style.display = "none"; return; }
+  row.style.display = "";
+  container.innerHTML = top.map(g => `
+    <button class="chip accent ${state.genres.has(g) ? "active" : ""}" data-genre="${escapeHtml(g)}">${escapeHtml(g)}</button>
+  `).join("");
+  container.querySelectorAll("[data-genre]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const g = btn.dataset.genre;
+      if (state.genres.has(g)) state.genres.delete(g); else state.genres.add(g);
+      render();
+    });
+  });
+}
+
+async function load({ force = false } = {}) {
+  state.error = null;
+  if (!force) {
+    const cached = readCache(state.window);
+    if (cached) {
+      state.gigs = cached;
+      state.loading = false;
+      document.getElementById("last-updated").textContent = "cached";
+      render();
+      return;
+    }
+  }
+  state.loading = true;
+  render();
+  try {
+    const gigs = await fetchAllGigs(state.window);
+    state.gigs = gigs;
+    writeCache(state.window, gigs);
+    document.getElementById("last-updated").textContent = "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    state.error = e.message || String(e);
+    state.gigs = [];
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+function bind() {
+  document.querySelectorAll("[data-window]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-window]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.window = parseInt(btn.dataset.window, 10);
+      load();
+    });
+  });
+  document.querySelectorAll("[data-size]").forEach(btn => {
+    btn.classList.add("active");
+    btn.addEventListener("click", () => {
+      const s = btn.dataset.size;
+      if (state.sizes.has(s)) { state.sizes.delete(s); btn.classList.remove("active"); }
+      else { state.sizes.add(s); btn.classList.add("active"); }
+      render();
+    });
+  });
+  document.getElementById("search-box").addEventListener("input", e => { state.search = e.target.value; render(); });
+  const priceRange = document.getElementById("price-range");
+  priceRange.addEventListener("input", e => {
+    state.maxPrice = parseInt(e.target.value, 10);
+    document.getElementById("price-val").textContent = state.maxPrice;
+    render();
+  });
+  document.getElementById("refresh-btn").addEventListener("click", () => load({ force: true }));
+}
+
+bind();
+load();
+</script>
+</body>
+</html>
