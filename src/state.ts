@@ -7,7 +7,6 @@ export interface AppState {
   genres: Set<string>;
   maxPrice: number;
   search: string;
-  group: "day" | "month";
   foryou: Set<ForYou>;
   gigs: Gig[];
   saved: Set<string>;
@@ -25,7 +24,6 @@ export const state: AppState = {
   genres: new Set<string>(),
   maxPrice: 60,
   search: "",
-  group: "day",
   foryou: new Set<ForYou>(),
   gigs: [],
   saved: new Set<string>(),

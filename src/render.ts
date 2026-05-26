@@ -2,7 +2,7 @@ import type { Gig } from "./types";
 import { state, PRICE_MAX } from "./state";
 import { escapeHtml, byId } from "./dom";
 import { gcalLink } from "./ics";
-import { fmtGroupHeader, monthLabel } from "./dates";
+import { fmtDateHeader, monthLabel } from "./dates";
 import { computeMatch } from "./matching";
 
 /** Recompute per-gig saved/match flags. Call after gigs, saved set, or Last.fm
@@ -58,7 +58,7 @@ function priority(g: Gig): number {
 function groupGigs(gigs: Gig[]): Array<[string, Gig[]]> {
   const map = new Map<string, Gig[]>();
   for (const g of gigs) {
-    const k = state.group === "month" ? g.date.slice(0, 7) : g.date;
+    const k = g.date;
     if (!map.has(k)) map.set(k, []);
     map.get(k)!.push(g);
   }
@@ -111,7 +111,8 @@ function renderGig(g: Gig): string {
     ? `<img class="gig-thumb" src="${escapeHtml(g.image)}" alt="" loading="lazy" decoding="async">`
     : "";
   return `
-    <article class="gig ${sizeClass} ${matchClass}">
+    <article class="gig ${sizeClass} ${matchClass} ${g.image ? "" : "no-thumb"}">
+      <button class="save-star ${g.saved ? "saved" : ""}" data-action="save" data-id="${id}" aria-pressed="${g.saved ? "true" : "false"}" aria-label="${g.saved ? "Unsave gig" : "Save gig"}" title="${g.saved ? "Saved" : "Save"}">${g.saved ? "★" : "☆"}</button>
       ${thumb}
       <div class="gig-time">
         <div class="door-label">Doors</div>
@@ -120,7 +121,6 @@ function renderGig(g: Gig): string {
       </div>
       <div class="gig-main">
         <div class="gig-venue-line">
-          <button class="save-star ${g.saved ? "saved" : ""}" data-action="save" data-id="${id}" aria-pressed="${g.saved ? "true" : "false"}" aria-label="${g.saved ? "Unsave gig" : "Save gig"}" title="${g.saved ? "Saved" : "Save"}">${g.saved ? "★" : "☆"}</button>
           <span>${escapeHtml(g.venue)}</span><span>·</span>${capLine}${badge}
         </div>
         <h3 class="gig-title">${escapeHtml(g.name)}</h3>
@@ -236,7 +236,7 @@ export function render(): void {
     .map(
       ([key, gigs]) => `
     <div class="date-group">
-      <h2 class="date-header"><span>${fmtGroupHeader(key, state.group)}</span><span class="day-count">${gigs.length} gig${gigs.length === 1 ? "" : "s"}</span></h2>
+      <h2 class="date-header"><span>${fmtDateHeader(key)}</span><span class="day-count">${gigs.length} gig${gigs.length === 1 ? "" : "s"}</span></h2>
       ${gigs.map(renderGig).join("")}
     </div>`,
     )

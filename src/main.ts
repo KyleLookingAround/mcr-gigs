@@ -28,9 +28,6 @@ function applyStateToUI(): void {
     .querySelectorAll<HTMLElement>("[data-size]")
     .forEach((b) => b.classList.toggle("active", state.sizes.has(b.dataset.size as RoomSize)));
   document
-    .querySelectorAll<HTMLElement>("[data-group]")
-    .forEach((b) => b.classList.toggle("active", b.dataset.group === state.group));
-  document
     .querySelectorAll<HTMLElement>("[data-foryou]")
     .forEach((b) => b.classList.toggle("active", state.foryou.has(b.dataset.foryou as ForYou)));
   byId<HTMLInputElement>("price-range").value = String(state.maxPrice);
@@ -136,16 +133,6 @@ function bind(): void {
       if (state.sizes.has(s)) state.sizes.delete(s);
       else state.sizes.add(s);
       btn.classList.toggle("active", state.sizes.has(s));
-      savePrefs();
-      render();
-    });
-  });
-  document.querySelectorAll<HTMLElement>("[data-group]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.group = btn.dataset.group as "day" | "month";
-      document
-        .querySelectorAll<HTMLElement>("[data-group]")
-        .forEach((b) => b.classList.toggle("active", b === btn));
       savePrefs();
       render();
     });

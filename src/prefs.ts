@@ -9,7 +9,6 @@ export function loadPrefs(): void {
     if (Array.isArray(p.sizes)) state.sizes = new Set(p.sizes as RoomSize[]);
     if (Array.isArray(p.genres)) state.genres = new Set(p.genres as string[]);
     if (typeof p.maxPrice === "number") state.maxPrice = p.maxPrice;
-    if (p.group === "day" || p.group === "month") state.group = p.group;
     if (typeof p.lastfmUser === "string") state.lastfm.user = p.lastfmUser;
   } catch {
     /* ignore corrupt prefs */
@@ -31,7 +30,6 @@ export function savePrefs(): void {
         sizes: [...state.sizes],
         genres: [...state.genres],
         maxPrice: state.maxPrice,
-        group: state.group,
         lastfmUser: state.lastfm.user,
       }),
     );

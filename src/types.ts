@@ -59,6 +59,5 @@ export interface Prefs {
   sizes: string[];
   genres: string[];
   maxPrice: number;
-  group: "day" | "month";
   lastfmUser: string;
 }

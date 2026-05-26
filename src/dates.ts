@@ -57,14 +57,6 @@ export function fmtDateHeader(iso: string): string {
   return `${dow} ${d.getDate()} ${month}`;
 }
 
-export function fmtGroupHeader(key: string, group: "day" | "month"): string {
-  if (group === "month") {
-    const d = parseLocalDate(key + "-01");
-    return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  }
-  return fmtDateHeader(key);
-}
-
 /** Label for a "YYYY-MM" month chip, e.g. "May" or "Jan 27". */
 export function monthLabel(ym: string): string {
   const [y, m] = ym.split("-").map(Number);

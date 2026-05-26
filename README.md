@@ -2,7 +2,7 @@
 
 Static gig finder for Manchester. Hits the Skiddle Events API through a Netlify edge function so the API key never reaches the browser.
 
-Tune it to your taste: connect your **Last.fm** username and gigs by artists you listen to (and artists similar to them) get flagged and floated to the top. Star gigs to save them, group by day or month, and your filters stick between visits — all in the browser, no account needed. Each gig links out to Spotify/YouTube and exports to Google Calendar or an `.ics` file.
+Tune it to your taste: connect your **Last.fm** username and gigs by artists you listen to (and artists similar to them) get flagged and floated to the top. Star gigs to save them, and your filters stick between visits — all in the browser, no account needed. Each gig links out to Spotify/YouTube and exports to Google Calendar or an `.ics` file.
 
 ## Deploy
 
@@ -30,8 +30,8 @@ That's it. Visit the site URL.
 
 - **Last.fm matching:** type your username in the _Last.fm_ box. The app pulls your top artists (and similar artists for "people like me"), flags matching gigs with a `♪ Your artist` / `≈ Similar to yours` badge, and the _For you_ filter lets you show only those. Results are cached in `localStorage` for a day.
 - **Saved gigs:** the ☆ on each gig saves it; _For you → ★ Saved_ shows your saved list.
-- **Sticky preferences:** window, room sizes, genres, max price, grouping and your Last.fm username persist between visits.
-- **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus _All_). Group results by day or month. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
+- **Sticky preferences:** window, room sizes, genres, max price and your Last.fm username persist between visits.
+- **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus _All_). Results are grouped by day. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
 - **Per-gig links:** Spotify & YouTube search, plus Google Calendar / `.ics` export.
 
 ## Local dev
