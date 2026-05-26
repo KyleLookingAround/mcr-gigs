@@ -1,0 +1,32 @@
+{
+  "name": "mcr-gigs",
+  "version": "1.0.0",
+  "description": "Manchester live-music gig finder — static site backed by Netlify edge proxies.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.30.0",
+    "eslint-config-prettier": "^10.0.0",
+    "jsdom": "^29.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.20.0",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}
