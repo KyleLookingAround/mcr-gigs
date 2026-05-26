@@ -197,9 +197,13 @@ footer {
   <div class="filter-row">
     <span class="filter-label">Window</span>
     <button class="chip" data-window="7">Next 7d</button>
-    <button class="chip active" data-window="14">Next 14d</button>
+    <button class="chip" data-window="14">Next 14d</button>
     <button class="chip" data-window="30">Next 30d</button>
     <button class="chip" data-window="60">Next 60d</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">Month</span>
+    <div id="month-chips" style="display: contents;"></div>
   </div>
   <div class="filter-row">
     <span class="filter-label">Room size</span>
@@ -305,7 +309,9 @@ function sizeBucket(cap) {
 }
 
 const state = {
+  mode: "window",                  // "window" (next N days) | "month" (a picked month)
   window: 14,
+  month: "",                       // "YYYY-MM" when mode === "month"; set in loadPrefs
   sizes: new Set(["small", "mid", "large", "unknown"]),
   genres: new Set(),
   maxPrice: 60,
@@ -319,18 +325,20 @@ const state = {
   error: null,
 };
 
-function cacheKey(w) { return `mcr_gigs_v2_${w}`; }
-function readCache(w) {
+function cacheKey() {
+  return state.mode === "month" ? `mcr_gigs_v3_m${state.month}` : `mcr_gigs_v3_w${state.window}`;
+}
+function readCache() {
   try {
-    const raw = localStorage.getItem(cacheKey(w));
+    const raw = localStorage.getItem(cacheKey());
     if (!raw) return null;
     const { ts, gigs } = JSON.parse(raw);
     if (Date.now() - ts > CACHE_TTL_MIN * 60 * 1000) return null;
     return gigs;
   } catch { return null; }
 }
-function writeCache(w, gigs) {
-  try { localStorage.setItem(cacheKey(w), JSON.stringify({ ts: Date.now(), gigs })); } catch {}
+function writeCache(gigs) {
+  try { localStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), gigs })); } catch {}
 }
 
 // ---- Preferences & saved gigs (localStorage) -----------------------------
@@ -339,9 +347,15 @@ const SAVED_KEY = "mcr_gigs_saved_v1";
 const LASTFM_PREFIX = "mcr_gigs_lastfm_v1_";
 
 function loadPrefs() {
+  const cur = ymOf(new Date());
+  state.month = cur;
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
     if (typeof p.window === "number") state.window = p.window;
+    if (p.mode === "month" || p.mode === "window") state.mode = p.mode;
+    // Only restore a saved month if it isn't already in the past.
+    if (typeof p.month === "string" && p.month >= cur) state.month = p.month;
+    else if (state.mode === "month") state.mode = "window";
     if (Array.isArray(p.sizes)) state.sizes = new Set(p.sizes);
     if (Array.isArray(p.genres)) state.genres = new Set(p.genres);
     if (typeof p.maxPrice === "number") state.maxPrice = p.maxPrice;
@@ -356,7 +370,9 @@ function loadPrefs() {
 function savePrefs() {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
+      mode: state.mode,
       window: state.window,
+      month: state.month,
       sizes: [...state.sizes],
       genres: [...state.genres],
       maxPrice: state.maxPrice,
@@ -542,11 +558,43 @@ function downloadIcs(g) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-async function fetchAllGigs(daysAhead) {
-  const today = new Date();
-  const end = new Date(today.getTime() + daysAhead * 86400000);
-  const minDate = today.toISOString().slice(0, 10);
-  const maxDate = end.toISOString().slice(0, 10);
+// Local-timezone "YYYY-MM" (toISOString would shift across the day boundary).
+function ymOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+
+function monthRange(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const last = String(new Date(y, m, 0).getDate()).padStart(2, "0");
+  return { first: `${ym}-01`, last: `${ym}-${last}` };
+}
+
+// The [minDate, maxDate] window we ask Skiddle for and trim results to.
+function dateRange() {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  if (state.mode === "month") {
+    const { first, last } = monthRange(state.month);
+    return { minDate: first < todayIso ? todayIso : first, maxDate: last };
+  }
+  const end = new Date(Date.now() + state.window * 86400000).toISOString().slice(0, 10);
+  return { minDate: todayIso, maxDate: end };
+}
+
+// The next `n` months as { ym, label } for the month picker.
+function monthOptions(n = 9) {
+  const out = [];
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const d = new Date(now.getFullYear(), now.getMonth(), 1);
+  for (let i = 0; i < n; i++) {
+    const label = d.toLocaleDateString("en-GB", { month: "short" }) +
+      (d.getFullYear() !== thisYear ? " " + String(d.getFullYear()).slice(2) : "");
+    out.push({ ym: ymOf(d), label });
+    d.setMonth(d.getMonth() + 1);
+  }
+  return out;
+}
+
+async function fetchAllGigs() {
+  const { minDate, maxDate } = dateRange();
 
   const collected = [];
   let offset = 0;
@@ -572,7 +620,9 @@ async function fetchAllGigs(daysAhead) {
     if (batch.length < limit) break;
     offset += limit;
   }
-  return collected.map(normaliseGig);
+  // Skiddle sometimes returns events dated outside the requested window
+  // (e.g. recurring classes); keep only gigs that actually fall in range.
+  return collected.map(normaliseGig).filter(g => g.date && g.date >= minDate && g.date <= maxDate);
 }
 
 function normaliseGig(ev) {
@@ -781,7 +831,7 @@ function renderGenreChips() {
 async function load({ force = false } = {}) {
   state.error = null;
   if (!force) {
-    const cached = readCache(state.window);
+    const cached = readCache();
     if (cached) {
       state.gigs = cached;
       state.loading = false;
@@ -795,9 +845,9 @@ async function load({ force = false } = {}) {
   state.loading = true;
   render();
   try {
-    const gigs = await fetchAllGigs(state.window);
+    const gigs = await fetchAllGigs();
     state.gigs = gigs;
-    writeCache(state.window, gigs);
+    writeCache(gigs);
     document.getElementById("last-updated").textContent = "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   } catch (e) {
     state.error = e.message || String(e);
@@ -810,9 +860,33 @@ async function load({ force = false } = {}) {
   }
 }
 
+// Highlight whichever date control (window chip or month chip) is in effect.
+function syncDateChips() {
+  document.querySelectorAll("[data-window]").forEach(b =>
+    b.classList.toggle("active", state.mode === "window" && parseInt(b.dataset.window, 10) === state.window));
+  document.querySelectorAll("[data-month]").forEach(b =>
+    b.classList.toggle("active", state.mode === "month" && b.dataset.month === state.month));
+}
+
+function renderMonthChips() {
+  const container = document.getElementById("month-chips");
+  container.innerHTML = monthOptions(9).map(o =>
+    `<button class="chip" data-month="${o.ym}">${escapeHtml(o.label)}</button>`).join("");
+  container.querySelectorAll("[data-month]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.mode = "month";
+      state.month = btn.dataset.month;
+      syncDateChips();
+      savePrefs();
+      load();
+    });
+  });
+  syncDateChips();
+}
+
 // Reflect persisted state onto the controls (chips, slider, inputs).
 function applyStateToUI() {
-  document.querySelectorAll("[data-window]").forEach(b => b.classList.toggle("active", parseInt(b.dataset.window, 10) === state.window));
+  renderMonthChips();
   document.querySelectorAll("[data-size]").forEach(b => b.classList.toggle("active", state.sizes.has(b.dataset.size)));
   document.querySelectorAll("[data-group]").forEach(b => b.classList.toggle("active", b.dataset.group === state.group));
   document.querySelectorAll("[data-foryou]").forEach(b => b.classList.toggle("active", state.foryou.has(b.dataset.foryou)));
@@ -824,9 +898,9 @@ function applyStateToUI() {
 function bind() {
   document.querySelectorAll("[data-window]").forEach(btn => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll("[data-window]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
+      state.mode = "window";
       state.window = parseInt(btn.dataset.window, 10);
+      syncDateChips();
       savePrefs();
       load();
     });
