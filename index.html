@@ -200,6 +200,7 @@ footer {
     <button class="chip" data-window="14">Next 14d</button>
     <button class="chip" data-window="30">Next 30d</button>
     <button class="chip" data-window="60">Next 60d</button>
+    <button class="chip" data-window="365">Next 365d</button>
   </div>
   <div class="filter-row" id="month-row" style="display:none">
     <span class="filter-label">Month</span>
@@ -571,7 +572,7 @@ async function fetchAllGigs() {
   let offset = 0;
   const limit = 100;
 
-  while (offset < 600) {
+  while (offset < 2000) {  // safety ceiling; a 365-day window can exceed 600 events
     const params = new URLSearchParams({
       latitude: String(MCR_CENTRE.lat),
       longitude: String(MCR_CENTRE.lng),
