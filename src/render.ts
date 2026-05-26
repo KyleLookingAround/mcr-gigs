@@ -156,7 +156,7 @@ function renderMonthChips(): void {
   }
   row.style.display = "";
   const chip = (val: string, label: string, active: boolean) =>
-    `<button class="chip ${active ? "active" : ""}" data-month="${escapeHtml(val)}">${escapeHtml(label)}</button>`;
+    `<button class="chip ${active ? "active" : ""}" data-month="${escapeHtml(val)}" aria-pressed="${active}">${escapeHtml(label)}</button>`;
   container.innerHTML =
     chip("", "All", state.monthFilter === "") +
     months.map((m) => chip(m, monthLabel(m), state.monthFilter === m)).join("");
@@ -179,7 +179,7 @@ function renderGenreChips(): void {
   container.innerHTML = top
     .map(
       (g) =>
-        `<button class="chip accent ${state.genres.has(g) ? "active" : ""}" data-genre="${escapeHtml(g)}">${escapeHtml(g)}</button>`,
+        `<button class="chip accent ${state.genres.has(g) ? "active" : ""}" data-genre="${escapeHtml(g)}" aria-pressed="${state.genres.has(g)}">${escapeHtml(g)}</button>`,
     )
     .join("");
 }
@@ -205,6 +205,7 @@ export function renderLastfmStatus(): void {
 
 export function render(): void {
   const results = byId("results");
+  results.setAttribute("aria-busy", state.loading ? "true" : "false");
   byId("error-container").innerHTML = state.error
     ? `<div class="error-box"><strong>Couldn't load gigs.</strong> ${escapeHtml(state.error)}
         <div style="margin-top:8px; font-size:11px; color:var(--muted)">
