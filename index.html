@@ -45,7 +45,7 @@
 
     <div class="filters">
       <div class="filter-row" role="group" aria-label="Time window">
-        <span class="filter-label">Window</span>
+        <span class="filter-label" title="How far ahead to load gigs from the source">Window</span>
         <button class="chip" data-window="7" aria-pressed="false">Next 7d</button>
         <button class="chip" data-window="14" aria-pressed="false">Next 14d</button>
         <button class="chip" data-window="30" aria-pressed="false">Next 30d</button>
@@ -55,7 +55,9 @@
         <button class="chip" data-window="365" aria-pressed="false">Next 365d</button>
       </div>
       <div class="filter-row" id="month-row" style="display: none" role="group" aria-label="Month">
-        <span class="filter-label">Month</span>
+        <span class="filter-label" title="Filter the already-loaded gigs down to one month"
+          >Month</span
+        >
         <div id="month-chips" style="display: contents"></div>
       </div>
       <div class="filter-row" role="group" aria-label="Room size">
@@ -115,7 +117,16 @@
         />
         <div class="price-control">
           <label class="filter-label" for="price-range">Max <span id="price-val">£60</span></label>
-          <input type="range" id="price-range" min="5" max="100" value="60" step="5" />
+          <input
+            type="range"
+            id="price-range"
+            min="5"
+            max="100"
+            value="60"
+            step="5"
+            aria-describedby="price-note"
+          />
+          <span class="price-note" id="price-note"></span>
         </div>
         <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
       </div>

@@ -145,6 +145,12 @@ h1 {
   width: 140px;
   accent-color: var(--red);
 }
+.price-note {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .refresh-btn {
   background: var(--ink);
   color: var(--paper);

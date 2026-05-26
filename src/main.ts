@@ -13,6 +13,13 @@ function priceText(): string {
   return state.maxPrice >= PRICE_MAX ? "Any" : `£${state.maxPrice}`;
 }
 
+/** Sync the price slider's value label and the note explaining that
+ *  unknown-price gigs are never hidden by the slider. */
+function updatePriceUI(): void {
+  byId("price-val").textContent = priceText();
+  byId("price-note").textContent = state.maxPrice < PRICE_MAX ? "incl. unknown prices" : "";
+}
+
 function updateForYouChips(): void {
   const hasLf = state.lastfm.top.size > 0;
   byId("fy-you").style.display = hasLf ? "" : "none";
@@ -32,7 +39,7 @@ function applyStateToUI(): void {
     .querySelectorAll<HTMLElement>("[data-foryou]")
     .forEach((b) => setPressed(b, state.foryou.has(b.dataset.foryou as ForYou)));
   byId<HTMLInputElement>("price-range").value = String(state.maxPrice);
-  byId("price-val").textContent = priceText();
+  updatePriceUI();
   byId<HTMLInputElement>("lastfm-user").value = state.lastfm.user;
 }
 
@@ -157,7 +164,7 @@ function bind(): void {
   const priceRange = byId<HTMLInputElement>("price-range");
   priceRange.addEventListener("input", (e) => {
     state.maxPrice = Number((e.target as HTMLInputElement).value);
-    byId("price-val").textContent = priceText();
+    updatePriceUI();
     render();
   });
   priceRange.addEventListener("change", savePrefs);
