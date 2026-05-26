@@ -149,6 +149,34 @@ footer {
   font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
 }
+
+/* personalization additions */
+.lastfm-input { flex: 0 1 240px; min-width: 160px; }
+.lastfm-status { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+
+.save-star {
+  background: none; border: none; padding: 0; margin: 0; line-height: 1;
+  font-size: 15px; color: var(--muted); cursor: pointer; transition: color 0.1s;
+}
+.save-star:hover { color: var(--red); }
+.save-star.saved { color: var(--red); }
+
+.match-badge {
+  font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700;
+  padding: 1px 6px; border: 1px solid var(--red); color: var(--red);
+}
+.match-badge.you { background: var(--red); color: var(--paper); }
+.gig.match-you { box-shadow: inset 4px 0 0 var(--red); }
+.gig.match-similar { box-shadow: inset 4px 0 0 rgba(200,52,28,0.35); }
+
+.gig-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+.gig-links a, .gig-links button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
+  text-decoration: none; border: none; background: none; padding: 0 0 1px; cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+.gig-links a:hover, .gig-links button:hover { color: var(--red); border-color: var(--red); }
 </style>
 </head>
 <body>
@@ -169,9 +197,16 @@ footer {
   <div class="filter-row">
     <span class="filter-label">Window</span>
     <button class="chip" data-window="7">Next 7d</button>
-    <button class="chip active" data-window="14">Next 14d</button>
+    <button class="chip" data-window="14">Next 14d</button>
     <button class="chip" data-window="30">Next 30d</button>
     <button class="chip" data-window="60">Next 60d</button>
+    <button class="chip" data-window="90">Next 90d</button>
+    <button class="chip" data-window="180">Next 180d</button>
+    <button class="chip" data-window="365">Next 365d</button>
+  </div>
+  <div class="filter-row" id="month-row" style="display:none">
+    <span class="filter-label">Month</span>
+    <div id="month-chips" style="display: contents;"></div>
   </div>
   <div class="filter-row">
     <span class="filter-label">Room size</span>
@@ -180,9 +215,26 @@ footer {
     <button class="chip" data-size="large">Large (1200+)</button>
     <button class="chip" data-size="unknown">Unknown</button>
   </div>
+  <div class="filter-row">
+    <span class="filter-label">Group by</span>
+    <button class="chip" data-group="day">Day</button>
+    <button class="chip" data-group="month">Month</button>
+  </div>
+  <div class="filter-row" id="foryou-row">
+    <span class="filter-label">For you</span>
+    <button class="chip accent" data-foryou="saved">★ Saved</button>
+    <button class="chip accent" data-foryou="you" id="fy-you" style="display:none">♪ Your artists</button>
+    <button class="chip accent" data-foryou="similar" id="fy-similar" style="display:none">≈ Similar</button>
+  </div>
   <div class="filter-row" id="genre-row" style="display:none">
     <span class="filter-label">Genres</span>
     <div id="genre-chips" style="display: contents;"></div>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">Last.fm</span>
+    <input type="text" class="search-box lastfm-input" id="lastfm-user" placeholder="your last.fm username">
+    <button class="chip" id="lastfm-btn">Connect</button>
+    <span class="lastfm-status" id="lastfm-status"></span>
   </div>
   <div class="filter-row">
     <span class="filter-label">Search</span>
@@ -260,41 +312,269 @@ function sizeBucket(cap) {
 }
 
 const state = {
-  window: 14,
+  window: 14,                      // Skiddle fetch window, in days
+  monthFilter: "",                 // "YYYY-MM" to show only that month of loaded gigs; "" = all
   sizes: new Set(["small", "mid", "large", "unknown"]),
   genres: new Set(),
   maxPrice: 60,
   search: "",
+  group: "day",
+  foryou: new Set(),               // any of "saved" | "you" | "similar"
   gigs: [],
+  saved: new Set(),                // saved gig ids (persisted)
+  lastfm: { user: "", top: new Set(), similar: new Set(), loading: false, error: null },
   loading: false,
   error: null,
 };
 
-function cacheKey(w) { return `mcr_gigs_v2_${w}`; }
-function readCache(w) {
+function cacheKey() {
+  return `mcr_gigs_v3_w${state.window}`;
+}
+function readCache() {
   try {
-    const raw = localStorage.getItem(cacheKey(w));
+    const raw = localStorage.getItem(cacheKey());
     if (!raw) return null;
     const { ts, gigs } = JSON.parse(raw);
     if (Date.now() - ts > CACHE_TTL_MIN * 60 * 1000) return null;
     return gigs;
   } catch { return null; }
 }
-function writeCache(w, gigs) {
-  try { localStorage.setItem(cacheKey(w), JSON.stringify({ ts: Date.now(), gigs })); } catch {}
+function writeCache(gigs) {
+  try { localStorage.setItem(cacheKey(), JSON.stringify({ ts: Date.now(), gigs })); } catch {}
 }
 
-async function fetchAllGigs(daysAhead) {
-  const today = new Date();
-  const end = new Date(today.getTime() + daysAhead * 86400000);
-  const minDate = today.toISOString().slice(0, 10);
-  const maxDate = end.toISOString().slice(0, 10);
+// ---- Preferences & saved gigs (localStorage) -----------------------------
+const PREFS_KEY = "mcr_gigs_prefs_v1";
+const SAVED_KEY = "mcr_gigs_saved_v1";
+const LASTFM_PREFIX = "mcr_gigs_lastfm_v1_";
+
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+    if (typeof p.window === "number") state.window = p.window;
+    if (Array.isArray(p.sizes)) state.sizes = new Set(p.sizes);
+    if (Array.isArray(p.genres)) state.genres = new Set(p.genres);
+    if (typeof p.maxPrice === "number") state.maxPrice = p.maxPrice;
+    if (p.group === "day" || p.group === "month") state.group = p.group;
+    if (typeof p.lastfmUser === "string") state.lastfm.user = p.lastfmUser;
+  } catch {}
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+    if (Array.isArray(s)) state.saved = new Set(s.map(String));
+  } catch {}
+}
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      window: state.window,
+      sizes: [...state.sizes],
+      genres: [...state.genres],
+      maxPrice: state.maxPrice,
+      group: state.group,
+      lastfmUser: state.lastfm.user,
+    }));
+  } catch {}
+}
+function saveSaved() {
+  try { localStorage.setItem(SAVED_KEY, JSON.stringify([...state.saved])); } catch {}
+}
+
+// ---- Last.fm taste matching ----------------------------------------------
+function normName(s) {
+  return String(s).toLowerCase().normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // drop combining accents (Ros -> ros)
+    .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// Tag each gig with whether it matches one of your artists ("you") or a
+// similar artist ("similar"), plus whether it's saved. Match is a whole-token
+// containment test so "Yes" won't hit "Yesterday".
+function computeMatches() {
+  const top = state.lastfm.top, sim = state.lastfm.similar;
+  for (const g of state.gigs) {
+    g.saved = state.saved.has(g.id);
+    g.match = null;
+    if (!top.size && !sim.size) continue;
+    const hay = " " + normName(g.name) + " ";
+    let hit = null;
+    for (const a of top) { if (a.length >= 3 && hay.includes(" " + a + " ")) { hit = "you"; break; } }
+    if (!hit) for (const a of sim) { if (a.length >= 3 && hay.includes(" " + a + " ")) { hit = "similar"; break; } }
+    g.match = hit;
+  }
+}
+
+async function connectLastfm(user, { force = false } = {}) {
+  user = (user || "").trim();
+  state.lastfm.user = user;
+  state.lastfm.error = null;
+  if (!user) {
+    state.lastfm.top = new Set();
+    state.lastfm.similar = new Set();
+    savePrefs(); updateForYouChips(); computeMatches(); renderLastfmStatus(); render();
+    return;
+  }
+
+  const ck = LASTFM_PREFIX + user.toLowerCase();
+  if (!force) {
+    try {
+      const raw = localStorage.getItem(ck);
+      if (raw) {
+        const { ts, top, similar } = JSON.parse(raw);
+        if (Date.now() - ts < 24 * 60 * 60 * 1000) {
+          state.lastfm.top = new Set(top);
+          state.lastfm.similar = new Set(similar);
+          savePrefs(); updateForYouChips(); computeMatches(); renderLastfmStatus(); render();
+          return;
+        }
+      }
+    } catch {}
+  }
+
+  state.lastfm.loading = true; renderLastfmStatus();
+  try {
+    const topRes = await fetch(`/api/lastfm?method=user.gettopartists&user=${encodeURIComponent(user)}&period=overall&limit=100`);
+    if (!topRes.ok) throw new Error(`HTTP ${topRes.status} from /api/lastfm`);
+    const topBody = await topRes.json();
+    if (topBody.error) throw new Error(topBody.message || `Last.fm error ${topBody.error}`);
+    const artists = (topBody.topartists?.artist || []).map(a => a.name).filter(Boolean);
+    if (artists.length === 0) throw new Error("No top artists for that username.");
+    const topSet = new Set(artists.map(normName).filter(Boolean));
+
+    // Pull similar artists for your top 20 to build a "people like me" set.
+    const simSet = new Set();
+    const lists = await Promise.all(artists.slice(0, 20).map(async name => {
+      try {
+        const r = await fetch(`/api/lastfm?method=artist.getsimilar&artist=${encodeURIComponent(name)}&autocorrect=1&limit=8`);
+        if (!r.ok) return [];
+        const b = await r.json();
+        return (b.similarartists?.artist || []).map(a => a.name).filter(Boolean);
+      } catch { return []; }
+    }));
+    for (const list of lists) for (const n of list) {
+      const nn = normName(n);
+      if (nn && !topSet.has(nn)) simSet.add(nn);
+    }
+
+    state.lastfm.top = topSet;
+    state.lastfm.similar = simSet;
+    try { localStorage.setItem(ck, JSON.stringify({ ts: Date.now(), top: [...topSet], similar: [...simSet] })); } catch {}
+  } catch (e) {
+    state.lastfm.error = e.message || String(e);
+    state.lastfm.top = new Set();
+    state.lastfm.similar = new Set();
+  } finally {
+    state.lastfm.loading = false;
+    savePrefs(); updateForYouChips(); computeMatches(); renderLastfmStatus(); render();
+  }
+}
+
+function renderLastfmStatus() {
+  const el = document.getElementById("lastfm-status");
+  const l = state.lastfm;
+  if (l.loading) { el.textContent = "Connecting…"; return; }
+  if (l.error) { el.textContent = l.error; return; }
+  if (l.user && l.top.size) {
+    const matched = state.gigs.filter(g => g.match === "you").length;
+    el.textContent = `${l.top.size} artists · ${matched} match`;
+  } else { el.textContent = ""; }
+}
+
+function updateForYouChips() {
+  const hasLf = state.lastfm.top.size > 0;
+  document.getElementById("fy-you").style.display = hasLf ? "" : "none";
+  document.getElementById("fy-similar").style.display = state.lastfm.similar.size > 0 ? "" : "none";
+  if (!hasLf) { state.foryou.delete("you"); }
+  if (state.lastfm.similar.size === 0) { state.foryou.delete("similar"); }
+}
+
+// ---- Calendar export ------------------------------------------------------
+function nextDay(iso) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+// Returns YYYYMMDDTHHMMSS for date + door time, rolling the day if hours wrap.
+function plusHours(dateIso, hhmm, hrs) {
+  const [H, M] = hhmm.split(":").map(Number);
+  let h = H + hrs, day = dateIso;
+  while (h >= 24) { h -= 24; day = nextDay(day); }
+  return day.replace(/-/g, "") + "T" + String(h).padStart(2, "0") + String(M).padStart(2, "0") + "00";
+}
+function localStamp(dateIso, hhmm) {
+  return dateIso.replace(/-/g, "") + "T" + hhmm.replace(":", "") + "00";
+}
+function gcalLink(g) {
+  let dates;
+  if (g.door) {
+    dates = `${localStamp(g.date, g.door)}/${plusHours(g.date, g.door, 3)}`;
+  } else {
+    dates = `${g.date.replace(/-/g, "")}/${nextDay(g.date).replace(/-/g, "")}`;
+  }
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: g.name + (g.venue ? ` @ ${g.venue}` : ""),
+    dates,
+    details: g.url,
+    location: g.venue,
+    ctz: "Europe/London",
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+function icsEscape(s) {
+  return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+function downloadIcs(g) {
+  let dtStart, dtEnd;
+  if (g.door) {
+    dtStart = "DTSTART:" + localStamp(g.date, g.door);
+    dtEnd = "DTEND:" + plusHours(g.date, g.door, 3);
+  } else {
+    dtStart = "DTSTART;VALUE=DATE:" + g.date.replace(/-/g, "");
+    dtEnd = "DTEND;VALUE=DATE:" + nextDay(g.date).replace(/-/g, "");
+  }
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  const lines = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MCR Gigs//EN", "BEGIN:VEVENT",
+    "UID:mcrgigs-" + g.id + "@mcr-gigs",
+    "DTSTAMP:" + stamp,
+    dtStart, dtEnd,
+    "SUMMARY:" + icsEscape(g.name),
+    "LOCATION:" + icsEscape(g.venue),
+    "DESCRIPTION:" + icsEscape(g.url),
+    "END:VEVENT", "END:VCALENDAR",
+  ];
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `gig-${g.id}.ics`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Label a "YYYY-MM" key for the month-filter chips, e.g. "May" or "Jan 27".
+function monthLabel(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString("en-GB", { month: "short" }) +
+    (y !== new Date().getFullYear() ? " " + String(y).slice(2) : "");
+}
+
+// The [minDate, maxDate] window we ask Skiddle for and trim results to.
+function dateRange() {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const end = new Date(Date.now() + state.window * 86400000).toISOString().slice(0, 10);
+  return { minDate: todayIso, maxDate: end };
+}
+
+async function fetchAllGigs() {
+  const { minDate, maxDate } = dateRange();
 
   const collected = [];
   let offset = 0;
   const limit = 100;
 
-  while (offset < 600) {
+  while (offset < 2000) {  // safety ceiling; a 365-day window can exceed 600 events
     const params = new URLSearchParams({
       latitude: String(MCR_CENTRE.lat),
       longitude: String(MCR_CENTRE.lng),
@@ -314,7 +594,9 @@ async function fetchAllGigs(daysAhead) {
     if (batch.length < limit) break;
     offset += limit;
   }
-  return collected.map(normaliseGig);
+  // Skiddle sometimes returns events dated outside the requested window
+  // (e.g. recurring classes); keep only gigs that actually fall in range.
+  return collected.map(normaliseGig).filter(g => g.date && g.date >= minDate && g.date <= maxDate);
 }
 
 function normaliseGig(ev) {
@@ -359,10 +641,19 @@ function stripHtml(s) {
 
 function filteredGigs() {
   const q = state.search.toLowerCase().trim();
+  const fy = state.foryou;
   return state.gigs.filter(g => {
+    if (state.monthFilter && !String(g.date).startsWith(state.monthFilter)) return false;
     if (!state.sizes.has(g.size)) return false;
     if (g.price != null && g.price > state.maxPrice) return false;
     if (state.genres.size > 0 && !g.genres.some(x => state.genres.has(x))) return false;
+    if (fy.size > 0) {
+      let ok = false;
+      if (fy.has("saved") && g.saved) ok = true;
+      if (fy.has("you") && g.match === "you") ok = true;
+      if (fy.has("similar") && (g.match === "you" || g.match === "similar")) ok = true;
+      if (!ok) return false;
+    }
     if (q) {
       const hay = (g.name + " " + g.venue + " " + g.genres.join(" ") + " " + g.description).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -371,13 +662,37 @@ function filteredGigs() {
   });
 }
 
-function groupByDate(gigs) {
+function groupKey(g) {
+  return state.group === "month" ? g.date.slice(0, 7) : g.date;
+}
+function priority(g) {
+  if (g.saved) return 0;
+  if (g.match === "you") return 1;
+  if (g.match === "similar") return 2;
+  return 3;
+}
+function groupGigs(gigs) {
   const map = new Map();
   for (const g of gigs) {
-    if (!map.has(g.date)) map.set(g.date, []);
-    map.get(g.date).push(g);
+    const k = groupKey(g);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(g);
+  }
+  for (const arr of map.values()) {
+    arr.sort((a, b) =>
+      a.date.localeCompare(b.date) ||
+      priority(a) - priority(b) ||
+      (a.door || "").localeCompare(b.door || "") ||
+      a.name.localeCompare(b.name));
   }
   return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+function fmtGroupHeader(key) {
+  if (state.group === "month") {
+    const d = new Date(key + "-01T12:00:00");
+    return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  }
+  return fmtDateHeader(key);
 }
 
 function fmtDateHeader(iso) {
@@ -392,13 +707,18 @@ function escapeHtml(s) {
 
 function renderGig(g) {
   const sizeClass = g.size === "small" ? "small-room" : g.size === "large" ? "large-room" : "";
+  const matchClass = g.match === "you" ? "match-you" : g.match === "similar" ? "match-similar" : "";
   const capLine = g.capacity != null
     ? `<span class="cap">cap. ${g.capacity}</span>`
     : `<span>capacity unknown</span>`;
   const genres = g.genres.slice(0, 4).map(x => `<span class="gig-genre">${escapeHtml(x)}</span>`).join("");
   const price = g.price != null ? `£${g.price}` : "—";
+  const badge = g.match === "you" ? `<span class="match-badge you">♪ Your artist</span>`
+    : g.match === "similar" ? `<span class="match-badge similar">≈ Similar to yours</span>` : "";
+  const id = escapeHtml(g.id);
+  const q = encodeURIComponent(g.name);
   return `
-    <article class="gig ${sizeClass}">
+    <article class="gig ${sizeClass} ${matchClass}">
       <div class="gig-time">
         <div class="door-label">Doors</div>
         <div class="door-time">${escapeHtml(g.door || "—")}</div>
@@ -406,11 +726,18 @@ function renderGig(g) {
       </div>
       <div class="gig-main">
         <div class="gig-venue-line">
-          <span>${escapeHtml(g.venue)}</span><span>·</span>${capLine}
+          <button class="save-star ${g.saved ? "saved" : ""}" data-action="save" data-id="${id}" aria-label="Save gig" title="${g.saved ? "Saved" : "Save"}">${g.saved ? "★" : "☆"}</button>
+          <span>${escapeHtml(g.venue)}</span><span>·</span>${capLine}${badge}
         </div>
         <h3 class="gig-title">${escapeHtml(g.name)}</h3>
         ${genres ? `<div class="gig-genres">${genres}</div>` : ""}
         ${g.description ? `<p class="gig-desc">${escapeHtml(g.description)}</p>` : ""}
+        <div class="gig-links">
+          <a href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener">♪ Spotify</a>
+          <a href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ YouTube</a>
+          <a href="${escapeHtml(gcalLink(g))}" target="_blank" rel="noopener">+ Google Cal</a>
+          <button data-action="ics" data-id="${id}">↓ .ics</button>
+        </div>
       </div>
       <div class="gig-side">
         <div class="gig-price"><span class="lbl">From</span>${price}</div>
@@ -437,6 +764,7 @@ function render() {
     return;
   }
 
+  renderMonthChips();
   renderGenreChips();
   const visible = filteredGigs();
   document.getElementById("visible-count").textContent = visible.length;
@@ -447,10 +775,10 @@ function render() {
     return;
   }
 
-  const grouped = groupByDate(visible);
-  results.innerHTML = grouped.map(([date, gigs]) => `
+  const grouped = groupGigs(visible);
+  results.innerHTML = grouped.map(([key, gigs]) => `
     <div class="date-group">
-      <h2 class="date-header"><span>${fmtDateHeader(date)}</span><span class="day-count">${gigs.length} gig${gigs.length === 1 ? "" : "s"}</span></h2>
+      <h2 class="date-header"><span>${fmtGroupHeader(key)}</span><span class="day-count">${gigs.length} gig${gigs.length === 1 ? "" : "s"}</span></h2>
       ${gigs.map(renderGig).join("")}
     </div>
   `).join("");
@@ -479,29 +807,62 @@ function renderGenreChips() {
 async function load({ force = false } = {}) {
   state.error = null;
   if (!force) {
-    const cached = readCache(state.window);
+    const cached = readCache();
     if (cached) {
       state.gigs = cached;
       state.loading = false;
       document.getElementById("last-updated").textContent = "cached";
+      computeMatches();
       render();
+      renderLastfmStatus();
       return;
     }
   }
   state.loading = true;
   render();
   try {
-    const gigs = await fetchAllGigs(state.window);
+    const gigs = await fetchAllGigs();
     state.gigs = gigs;
-    writeCache(state.window, gigs);
+    writeCache(gigs);
     document.getElementById("last-updated").textContent = "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   } catch (e) {
     state.error = e.message || String(e);
     state.gigs = [];
   } finally {
     state.loading = false;
+    computeMatches();
     render();
+    renderLastfmStatus();
   }
+}
+
+// Month chips are a client-side filter over already-loaded gigs: one chip per
+// month present in the data, plus "All". Rebuilt on each render.
+function renderMonthChips() {
+  const row = document.getElementById("month-row");
+  const container = document.getElementById("month-chips");
+  const months = [...new Set(state.gigs.map(g => String(g.date).slice(0, 7)))]
+    .filter(m => /^\d{4}-\d{2}$/.test(m)).sort();
+  if (state.monthFilter && !months.includes(state.monthFilter)) state.monthFilter = "";
+  if (months.length <= 1) { state.monthFilter = ""; row.style.display = "none"; return; }
+  row.style.display = "";
+  const chip = (val, label, active) => `<button class="chip ${active ? "active" : ""}" data-month="${val}">${escapeHtml(label)}</button>`;
+  container.innerHTML = chip("", "All", state.monthFilter === "") +
+    months.map(m => chip(m, monthLabel(m), state.monthFilter === m)).join("");
+  container.querySelectorAll("[data-month]").forEach(btn => {
+    btn.addEventListener("click", () => { state.monthFilter = btn.dataset.month; render(); });
+  });
+}
+
+// Reflect persisted state onto the controls (chips, slider, inputs).
+function applyStateToUI() {
+  document.querySelectorAll("[data-window]").forEach(b => b.classList.toggle("active", parseInt(b.dataset.window, 10) === state.window));
+  document.querySelectorAll("[data-size]").forEach(b => b.classList.toggle("active", state.sizes.has(b.dataset.size)));
+  document.querySelectorAll("[data-group]").forEach(b => b.classList.toggle("active", b.dataset.group === state.group));
+  document.querySelectorAll("[data-foryou]").forEach(b => b.classList.toggle("active", state.foryou.has(b.dataset.foryou)));
+  document.getElementById("price-range").value = state.maxPrice;
+  document.getElementById("price-val").textContent = state.maxPrice;
+  document.getElementById("lastfm-user").value = state.lastfm.user;
 }
 
 function bind() {
@@ -510,15 +871,32 @@ function bind() {
       document.querySelectorAll("[data-window]").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       state.window = parseInt(btn.dataset.window, 10);
+      savePrefs();
       load();
     });
   });
   document.querySelectorAll("[data-size]").forEach(btn => {
-    btn.classList.add("active");
     btn.addEventListener("click", () => {
       const s = btn.dataset.size;
       if (state.sizes.has(s)) { state.sizes.delete(s); btn.classList.remove("active"); }
       else { state.sizes.add(s); btn.classList.add("active"); }
+      savePrefs();
+      render();
+    });
+  });
+  document.querySelectorAll("[data-group]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.group = btn.dataset.group;
+      document.querySelectorAll("[data-group]").forEach(b => b.classList.toggle("active", b === btn));
+      savePrefs();
+      render();
+    });
+  });
+  document.querySelectorAll("[data-foryou]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const f = btn.dataset.foryou;
+      if (state.foryou.has(f)) { state.foryou.delete(f); btn.classList.remove("active"); }
+      else { state.foryou.add(f); btn.classList.add("active"); }
       render();
     });
   });
@@ -529,11 +907,36 @@ function bind() {
     document.getElementById("price-val").textContent = state.maxPrice;
     render();
   });
+  priceRange.addEventListener("change", savePrefs);
   document.getElementById("refresh-btn").addEventListener("click", () => load({ force: true }));
+
+  const lfInput = document.getElementById("lastfm-user");
+  document.getElementById("lastfm-btn").addEventListener("click", () => connectLastfm(lfInput.value, { force: true }));
+  lfInput.addEventListener("keydown", e => { if (e.key === "Enter") connectLastfm(lfInput.value, { force: true }); });
+
+  // Per-gig actions (save / .ics) via delegation so they survive re-renders.
+  document.getElementById("results").addEventListener("click", e => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const g = state.gigs.find(x => x.id === btn.dataset.id);
+    if (!g) return;
+    if (btn.dataset.action === "save") {
+      if (state.saved.has(g.id)) state.saved.delete(g.id); else state.saved.add(g.id);
+      saveSaved();
+      computeMatches();
+      render();
+      renderLastfmStatus();
+    } else if (btn.dataset.action === "ics") {
+      downloadIcs(g);
+    }
+  });
 }
 
+loadPrefs();
 bind();
+applyStateToUI();
 load();
+if (state.lastfm.user) connectLastfm(state.lastfm.user);
 </script>
 </body>
 </html>

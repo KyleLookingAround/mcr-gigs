@@ -2,16 +2,19 @@
 
 Static gig finder for Manchester. Hits the Skiddle Events API through a Netlify edge function so the API key never reaches the browser.
 
+Tune it to your taste: connect your **Last.fm** username and gigs by artists you listen to (and artists similar to them) get flagged and floated to the top. Star gigs to save them, group by day or month, and your filters stick between visits — all in the browser, no account needed. Each gig links out to Spotify/YouTube and exports to Google Calendar or an `.ics` file.
+
 ## Deploy
 
 1. **Get a Skiddle API key.** Free at https://www.skiddle.com/api/join.php — they email it.
 2. **Drop this folder into Netlify.** Either:
    - Drag the folder onto https://app.netlify.com (Sites → Add new site → Deploy manually), or
    - `git init && git remote add ... && git push`, then connect the repo on Netlify.
-3. **Add the env var.** Site → Site configuration → Environment variables → Add a variable:
+3. **Add the env var(s).** Site → Site configuration → Environment variables → Add a variable:
    - Key: `SKIDDLE_API_KEY`
    - Value: *(paste your key)*
    - Scopes: leave default (all)
+   - *(Optional)* `LASTFM_API_KEY` — enables the Last.fm taste-matching feature. Free at https://www.last.fm/api/account/create. Without it the rest of the site works fine; only the "Connect Last.fm" box is disabled.
 4. **Redeploy.** Deploys → Trigger deploy → Deploy site. Edge functions don't pick up new env vars until next deploy.
 
 That's it. Visit the site URL.
@@ -19,8 +22,17 @@ That's it. Visit the site URL.
 ## Files
 
 - `index.html` — the whole UI, vanilla JS, no build step
-- `netlify/edge-functions/skiddle.ts` — proxy that injects the API key
+- `netlify/edge-functions/skiddle.ts` — Skiddle proxy that injects `SKIDDLE_API_KEY`
+- `netlify/edge-functions/lastfm.ts` — Last.fm proxy that injects `LASTFM_API_KEY`
 - `netlify.toml` — minimal config
+
+## Personalization (all client-side)
+
+- **Last.fm matching:** type your username in the *Last.fm* box. The app pulls your top artists (and similar artists for "people like me"), flags matching gigs with a `♪ Your artist` / `≈ Similar to yours` badge, and the *For you* filter lets you show only those. Results are cached in `localStorage` for a day.
+- **Saved gigs:** the ☆ on each gig saves it; *For you → ★ Saved* shows your saved list.
+- **Sticky preferences:** window, room sizes, genres, max price, grouping and your Last.fm username persist between visits.
+- **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus *All*). Group results by day or month. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
+- **Per-gig links:** Spotify & YouTube search, plus Google Calendar / `.ics` export.
 
 ## Local dev
 
