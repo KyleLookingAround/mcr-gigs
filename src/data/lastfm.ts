@@ -37,7 +37,7 @@ async function lastfm(params: Record<string, string>): Promise<Record<string, un
   return body;
 }
 
-/** Fetch a user's top artists plus artists similar to their top 20, building a
+/** Fetch a user's top artists plus artists similar to their top 30, building a
  *  "you" set and a "people like you" set. Network-heavy, so cache the result. */
 export async function fetchTaste(user: string): Promise<Taste> {
   const topBody = await lastfm({
@@ -54,13 +54,13 @@ export async function fetchTaste(user: string): Promise<Taste> {
   const top = new Set(topArtists.map(normName).filter(Boolean));
 
   const lists = await Promise.all(
-    topArtists.slice(0, 20).map(async (name) => {
+    topArtists.slice(0, 30).map(async (name) => {
       try {
         const b = await lastfm({
           method: "artist.getsimilar",
           artist: name,
           autocorrect: "1",
-          limit: "8",
+          limit: "10",
         });
         return ((b.similarartists as { artist?: Array<{ name?: string }> })?.artist ?? [])
           .map((a) => a.name)
