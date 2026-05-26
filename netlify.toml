@@ -1,0 +1,6 @@
+# netlify.toml
+# Static site at the root. Edge function picks up its path config from the
+# function file itself (export const config = { path: "/api/skiddle" }).
+
+[build]
+  publish = "."
