@@ -15,7 +15,7 @@ export const MAX_EVENTS = 2000;
 /** Concurrent upstream page fetches. */
 export const FETCH_CONCURRENCY = 5;
 
-export const CACHE_PREFIX = "mcr_gigs_v4_w";
+export const CACHE_PREFIX = "mcr_gigs_v5_w";
 export const PREFS_KEY = "mcr_gigs_prefs_v1";
 export const SAVED_KEY = "mcr_gigs_saved_v1";
 export const LASTFM_PREFIX = "mcr_gigs_lastfm_v1_";

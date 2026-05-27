@@ -2,6 +2,7 @@ import type { Gig, ForYou, LastfmState, RoomSize } from "./types";
 
 export interface AppState {
   window: number;
+  view: "list" | "map";
   monthFilter: string; // "YYYY-MM" or "" for all
   sizes: Set<RoomSize>;
   genres: Set<string>;
@@ -19,6 +20,7 @@ export interface AppState {
 
 export const state: AppState = {
   window: 14,
+  view: "list",
   monthFilter: "",
   sizes: new Set<RoomSize>(["small", "mid", "large", "unknown"]),
   genres: new Set<string>(),

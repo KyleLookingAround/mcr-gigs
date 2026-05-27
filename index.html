@@ -134,12 +134,25 @@
 
     <div class="status-bar">
       <div class="count"><span class="num" id="visible-count">0</span> gigs</div>
+      <div class="view-toggle" role="group" aria-label="View">
+        <button class="chip" id="view-list" data-view="list" aria-pressed="true">List</button>
+        <button class="chip" id="view-map" data-view="map" aria-pressed="false">Map</button>
+      </div>
       <div class="meta" id="status-meta" aria-live="polite">—</div>
     </div>
 
     <div id="error-container" aria-live="assertive"></div>
 
     <main id="results" aria-label="Gig results" aria-live="polite"></main>
+
+    <section id="map-view" aria-label="Gig map" hidden>
+      <div id="map-el" role="application" aria-label="Map of gig venues"></div>
+      <aside id="map-panel" aria-label="Venues">
+        <h2 class="panel-head display">Venues</h2>
+        <div id="map-legend"></div>
+        <div id="venue-list"></div>
+      </aside>
+    </section>
 
     <footer>
       <span>Data: Skiddle Events API</span>

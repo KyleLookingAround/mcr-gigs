@@ -3,7 +3,7 @@ import { state, PRICE_MAX } from "./state";
 import { loadPrefs, savePrefs, saveSaved } from "./prefs";
 import { fetchAllGigs, readCache, writeCache } from "./data/skiddle";
 import { fetchTaste, readTasteCache } from "./data/lastfm";
-import { decorate, render, renderLastfmStatus } from "./render";
+import { decorate, render, renderLastfmStatus, filteredGigs, setAfterRender } from "./render";
 import { downloadIcs } from "./ics";
 import { initEasterEggs, maybeLegendToast } from "./eggs";
 import { byId, setPressed } from "./dom";
@@ -89,6 +89,23 @@ async function connectLastfm(user: string, { force = false } = {}): Promise<void
   }
 }
 
+let mapModule: Promise<typeof import("./map")> | null = null;
+function loadMapModule(): Promise<typeof import("./map")> {
+  if (!mapModule) mapModule = import("./map");
+  return mapModule;
+}
+
+async function setView(v: "list" | "map"): Promise<void> {
+  state.view = v;
+  setPressed(byId("view-list"), v === "list");
+  setPressed(byId("view-map"), v === "map");
+  render(); // toggles which container is visible
+  if (v === "map") {
+    const m = await loadMapModule();
+    m.showMap(filteredGigs());
+  }
+}
+
 async function load({ force = false } = {}): Promise<void> {
   state.error = null;
   state.partial = false;
@@ -171,6 +188,9 @@ function bind(): void {
 
   byId("refresh-btn").addEventListener("click", () => void load({ force: true }));
 
+  byId("view-list").addEventListener("click", () => void setView("list"));
+  byId("view-map").addEventListener("click", () => void setView("map"));
+
   const lfInput = byId<HTMLInputElement>("lastfm-user");
   byId("lastfm-btn").addEventListener(
     "click",
@@ -224,6 +244,11 @@ function registerServiceWorker(): void {
     });
   });
 }
+
+setAfterRender(() => {
+  if (state.view !== "map") return;
+  void loadMapModule().then((m) => m.update(filteredGigs()));
+});
 
 loadPrefs();
 bind();
