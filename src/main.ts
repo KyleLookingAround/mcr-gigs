@@ -7,6 +7,8 @@ import { decorate, render, renderLastfmStatus, filteredGigs, setAfterRender } fr
 import { downloadIcs } from "./ics";
 import { initEasterEggs, maybeLegendToast } from "./eggs";
 import { byId, setPressed } from "./dom";
+import { loadSeen, recordSeen } from "./seen";
+import { isSortMode } from "./sort";
 import type { ForYou, RoomSize } from "./types";
 
 function priceText(): string {
@@ -36,8 +38,13 @@ function applyStateToUI(): void {
     .querySelectorAll<HTMLElement>("[data-size]")
     .forEach((b) => setPressed(b, state.sizes.has(b.dataset.size as RoomSize)));
   document
+    .querySelectorAll<HTMLElement>("[data-day]")
+    .forEach((b) => setPressed(b, state.days.has(Number(b.dataset.day))));
+  document
     .querySelectorAll<HTMLElement>("[data-foryou]")
     .forEach((b) => setPressed(b, state.foryou.has(b.dataset.foryou as ForYou)));
+  setPressed(byId("free-only"), state.freeOnly);
+  byId<HTMLSelectElement>("sort-select").value = state.sort;
   byId<HTMLInputElement>("price-range").value = String(state.maxPrice);
   updatePriceUI();
   byId<HTMLInputElement>("lastfm-user").value = state.lastfm.user;
@@ -117,6 +124,7 @@ async function load({ force = false } = {}): Promise<void> {
       state.loading = false;
       byId("last-updated").textContent = "cached";
       decorate();
+      recordSeen(state.gigs.map((g) => g.id));
       render();
       renderLastfmStatus();
       return;
@@ -138,6 +146,7 @@ async function load({ force = false } = {}): Promise<void> {
   } finally {
     state.loading = false;
     decorate();
+    recordSeen(state.gigs.map((g) => g.id));
     render();
     renderLastfmStatus();
   }
@@ -162,6 +171,16 @@ function bind(): void {
       render();
     });
   });
+  document.querySelectorAll<HTMLElement>("[data-day]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const d = Number(btn.dataset.day);
+      if (state.days.has(d)) state.days.delete(d);
+      else state.days.add(d);
+      setPressed(btn, state.days.has(d));
+      savePrefs();
+      render();
+    });
+  });
   document.querySelectorAll<HTMLElement>("[data-foryou]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const f = btn.dataset.foryou as ForYou;
@@ -170,6 +189,21 @@ function bind(): void {
       setPressed(btn, state.foryou.has(f));
       render();
     });
+  });
+
+  const freeBtn = byId("free-only");
+  freeBtn.addEventListener("click", () => {
+    state.freeOnly = !state.freeOnly;
+    setPressed(freeBtn, state.freeOnly);
+    savePrefs();
+    render();
+  });
+
+  byId<HTMLSelectElement>("sort-select").addEventListener("change", (e) => {
+    const v = (e.target as HTMLSelectElement).value;
+    if (isSortMode(v)) state.sort = v;
+    savePrefs();
+    render();
   });
 
   byId<HTMLInputElement>("search-box").addEventListener("input", (e) => {
@@ -251,6 +285,7 @@ setAfterRender(() => {
 });
 
 loadPrefs();
+loadSeen();
 bind();
 applyStateToUI();
 initEasterEggs();

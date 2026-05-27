@@ -165,6 +165,20 @@ h1 {
   background: var(--red);
 }
 
+.sort-select {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  background: var(--paper-2);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.sort-select:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+}
+
 .status-bar {
   padding: 12px 20px;
   display: flex;
@@ -498,6 +512,11 @@ footer {
   background: var(--red);
   color: var(--paper);
 }
+.match-badge.new {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
 .gig.match-you {
   box-shadow: inset 4px 0 0 var(--red);
 }
@@ -648,6 +667,33 @@ footer {
 .lg-size .s-large {
   width: 12px;
   height: 12px;
+}
+.dot.station {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+  transform: rotate(45deg);
+}
+/* Leaflet positions the marker root with an inline transform, so the rotated
+   diamond lives on a pseudo-element to avoid clobbering that placement. */
+.station-pin::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+  transform: rotate(45deg);
+  box-shadow: 0 1px 2px rgba(26, 23, 20, 0.35);
+}
+.pop-station {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 2px 0 6px;
 }
 .venue-item {
   display: grid;

@@ -9,6 +9,7 @@ import {
   fmtDateHeader,
   monthLabel,
   todayIso,
+  dayOfWeek,
 } from "./dates";
 
 describe("date utils", () => {
@@ -42,6 +43,12 @@ describe("date utils", () => {
 
   it("renders a date header on the correct day", () => {
     expect(fmtDateHeader("2026-05-10")).toContain("10 May");
+  });
+
+  it("returns day of week with Sunday as 0 and Saturday as 6", () => {
+    expect(dayOfWeek("2026-05-10")).toBe(0); // Sunday
+    expect(dayOfWeek("2026-05-15")).toBe(5); // Friday
+    expect(dayOfWeek("2026-05-16")).toBe(6); // Saturday
   });
 
   it("labels months, adding a year only when not the current one", () => {

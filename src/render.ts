@@ -2,8 +2,10 @@ import type { Gig } from "./types";
 import { state, PRICE_MAX } from "./state";
 import { escapeHtml, byId } from "./dom";
 import { gcalLink } from "./ics";
-import { fmtDateHeader, monthLabel } from "./dates";
+import { fmtDateHeader, monthLabel, dayOfWeek } from "./dates";
 import { computeMatch } from "./matching";
+import { compareGigs } from "./sort";
+import { isNewGig } from "./seen";
 import { LOADING_PHRASES, EMPTY_PHRASES, pickPhrase } from "./phrases";
 
 /** Hook fired at the end of every render so the map view can stay in sync
@@ -20,6 +22,7 @@ export function decorate(): void {
   for (const g of state.gigs) {
     g.saved = state.saved.has(g.id);
     g.match = computeMatch(g, top, similar);
+    g.isNew = isNewGig(g.id);
   }
 }
 
@@ -29,7 +32,9 @@ export function filteredGigs(): Gig[] {
   const priceActive = state.maxPrice < PRICE_MAX;
   return state.gigs.filter((g) => {
     if (state.monthFilter && !g.date.startsWith(state.monthFilter)) return false;
+    if (state.days.size > 0 && !state.days.has(dayOfWeek(g.date))) return false;
     if (!state.sizes.has(g.size)) return false;
+    if (state.freeOnly && !g.isFree) return false;
     // Unknown-price gigs always pass; the slider only bounds known prices.
     if (priceActive && g.price != null && g.price > state.maxPrice) return false;
     if (state.genres.size > 0 && !g.genres.some((x) => state.genres.has(x))) return false;
@@ -56,13 +61,6 @@ export function filteredGigs(): Gig[] {
   });
 }
 
-function priority(g: Gig): number {
-  if (g.saved) return 0;
-  if (g.match === "you") return 1;
-  if (g.match === "similar") return 2;
-  return 3;
-}
-
 function groupGigs(gigs: Gig[]): Array<[string, Gig[]]> {
   const map = new Map<string, Gig[]>();
   for (const g of gigs) {
@@ -70,15 +68,8 @@ function groupGigs(gigs: Gig[]): Array<[string, Gig[]]> {
     if (!map.has(k)) map.set(k, []);
     map.get(k)!.push(g);
   }
-  for (const arr of map.values()) {
-    arr.sort(
-      (a, b) =>
-        a.date.localeCompare(b.date) ||
-        priority(a) - priority(b) ||
-        (a.door || "").localeCompare(b.door || "") ||
-        a.name.localeCompare(b.name),
-    );
-  }
+  const cmp = compareGigs(state.sort);
+  for (const arr of map.values()) arr.sort(cmp);
   return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
@@ -105,8 +96,10 @@ function renderGig(g: Gig): string {
       : g.match === "similar"
         ? `<span class="match-badge similar">≈ Similar to yours</span>`
         : "";
+  const newBadge = g.isNew && g.match ? `<span class="match-badge new">New</span>` : "";
   const id = escapeHtml(g.id);
-  const q = encodeURIComponent(g.name);
+  // Searches land on the act far more often than the (noisier) event title.
+  const q = encodeURIComponent(g.artists[0] || g.name);
   const sizeSub =
     g.size === "small"
       ? "Intimate"
@@ -129,7 +122,7 @@ function renderGig(g: Gig): string {
       </div>
       <div class="gig-main">
         <div class="gig-venue-line">
-          <span>${escapeHtml(g.venue)}</span><span>·</span>${capLine}${badge}
+          <span>${escapeHtml(g.venue)}</span><span>·</span>${capLine}${badge}${newBadge}
         </div>
         <h3 class="gig-title">${escapeHtml(g.name)}</h3>
         ${genres ? `<div class="gig-genres">${genres}</div>` : ""}
@@ -204,7 +197,10 @@ export function renderLastfmStatus(): void {
   }
   if (l.user && l.top.size) {
     const matched = state.gigs.filter((g) => g.match === "you").length;
-    el.textContent = `${l.top.size} artists · ${matched} match`;
+    const fresh = state.gigs.filter(
+      (g) => g.isNew && (g.match === "you" || g.match === "similar"),
+    ).length;
+    el.textContent = `${l.top.size} artists · ${matched} match${fresh ? ` · ${fresh} new` : ""}`;
   } else {
     el.textContent = "";
   }

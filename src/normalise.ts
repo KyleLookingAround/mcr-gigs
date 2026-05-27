@@ -44,8 +44,10 @@ export function normaliseGig(ev: SkiddleEvent): Gig {
   const { price, isFree } = parsePrice(ev.entryprice);
   const name = ev.eventname || venueName;
 
+  // Original lineup names, for display and as the basis of external searches.
+  const artists = [...new Set(extractArtists(ev))];
   // Candidate strings for taste matching: structured lineup + the event title.
-  const artistsNorm = [...new Set([...extractArtists(ev), name].map(normName).filter(Boolean))];
+  const artistsNorm = [...new Set([...artists, name].map(normName).filter(Boolean))];
 
   return {
     id: String(ev.id),
@@ -63,6 +65,7 @@ export function normaliseGig(ev: SkiddleEvent): Gig {
     description: stripHtml(ev.description || "").slice(0, 240),
     url: ev.link || `https://www.skiddle.com/whats-on/event/${ev.id}/`,
     image: ev.largeimageurl || ev.imageurl || "",
+    artists,
     artistsNorm,
   };
 }

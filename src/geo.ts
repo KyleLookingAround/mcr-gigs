@@ -16,3 +16,24 @@ export function formatMiles(metres: number): string {
   const mi = metres / 1609.344;
   return mi < 0.1 ? "<0.1 mi" : `${mi.toFixed(1)} mi`;
 }
+
+export interface GeoPoint {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+/** The closest point to a location, with its great-circle distance in metres.
+ *  Returns null only when given no candidates. */
+export function nearest(
+  lat: number,
+  lng: number,
+  points: readonly GeoPoint[],
+): { name: string; metres: number } | null {
+  let best: { name: string; metres: number } | null = null;
+  for (const p of points) {
+    const metres = haversineMetres(lat, lng, p.lat, p.lng);
+    if (!best || metres < best.metres) best = { name: p.name, metres };
+  }
+  return best;
+}

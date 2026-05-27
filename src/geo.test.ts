@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { haversineMetres, formatMiles } from "./geo";
+import { haversineMetres, formatMiles, nearest } from "./geo";
 
 describe("haversineMetres", () => {
   it("is zero for the same point", () => {
@@ -29,5 +29,23 @@ describe("formatMiles", () => {
   it("collapses very short distances", () => {
     expect(formatMiles(50)).toBe("<0.1 mi");
     expect(formatMiles(0)).toBe("<0.1 mi");
+  });
+});
+
+describe("nearest", () => {
+  const points = [
+    { name: "Piccadilly", lat: 53.4773, lng: -2.2309 },
+    { name: "Victoria", lat: 53.4875, lng: -2.2425 },
+  ];
+
+  it("picks the closest point and reports the distance", () => {
+    // A spot right by Victoria station.
+    const r = nearest(53.4874, -2.2426, points);
+    expect(r?.name).toBe("Victoria");
+    expect(r?.metres).toBeLessThan(50);
+  });
+
+  it("returns null when there are no candidates", () => {
+    expect(nearest(53.48, -2.24, [])).toBeNull();
   });
 });

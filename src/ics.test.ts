@@ -19,6 +19,7 @@ function gig(overrides: Partial<Gig> = {}): Gig {
     description: "",
     url: "https://example.com/e/99",
     image: "",
+    artists: [],
     artistsNorm: [],
     ...overrides,
   };

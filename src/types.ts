@@ -25,11 +25,15 @@ export interface Gig {
   description: string;
   url: string;
   image: string;
+  /** Original artist/lineup display names from the upstream, in order. */
+  artists: string[];
   /** Lowercase candidate artist/lineup strings used for taste matching. */
   artistsNorm: string[];
   // Derived per render pass:
   saved?: boolean;
   match?: MatchKind;
+  /** True when this gig id wasn't seen on a previous visit. */
+  isNew?: boolean;
 }
 
 /** The shape we depend on from a Skiddle event. Everything is optional. */
@@ -68,4 +72,7 @@ export interface Prefs {
   genres: string[];
   maxPrice: number;
   lastfmUser: string;
+  days: number[];
+  freeOnly: boolean;
+  sort: string;
 }

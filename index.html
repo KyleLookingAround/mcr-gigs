@@ -67,6 +67,16 @@
         <button class="chip" data-size="large" aria-pressed="false">Large (1200+)</button>
         <button class="chip" data-size="unknown" aria-pressed="false">Unknown</button>
       </div>
+      <div class="filter-row" role="group" aria-label="Days of the week">
+        <span class="filter-label" title="Show only gigs on the chosen days">Days</span>
+        <button class="chip" data-day="1" aria-pressed="false">Mon</button>
+        <button class="chip" data-day="2" aria-pressed="false">Tue</button>
+        <button class="chip" data-day="3" aria-pressed="false">Wed</button>
+        <button class="chip" data-day="4" aria-pressed="false">Thu</button>
+        <button class="chip" data-day="5" aria-pressed="false">Fri</button>
+        <button class="chip" data-day="6" aria-pressed="false">Sat</button>
+        <button class="chip" data-day="0" aria-pressed="false">Sun</button>
+      </div>
       <div class="filter-row" id="foryou-row" role="group" aria-label="For you">
         <span class="filter-label">For you</span>
         <button class="chip accent" data-foryou="saved" aria-pressed="false">★ Saved</button>
@@ -88,6 +98,17 @@
         >
           ≈ Similar
         </button>
+      </div>
+      <div class="filter-row" role="group" aria-label="Show and sort">
+        <span class="filter-label">Show</span>
+        <button class="chip accent" id="free-only" aria-pressed="false">Free only</button>
+        <label class="filter-label" for="sort-select">Sort</label>
+        <select id="sort-select" class="sort-select" aria-label="Sort gigs">
+          <option value="relevance">Relevance</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+          <option value="cap-desc">Capacity: big rooms first</option>
+        </select>
       </div>
       <div class="filter-row" id="genre-row" style="display: none" role="group" aria-label="Genres">
         <span class="filter-label">Genres</span>

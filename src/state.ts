@@ -1,4 +1,5 @@
 import type { Gig, ForYou, LastfmState, RoomSize } from "./types";
+import type { SortMode } from "./sort";
 
 export interface AppState {
   window: number;
@@ -7,6 +8,11 @@ export interface AppState {
   sizes: Set<RoomSize>;
   genres: Set<string>;
   maxPrice: number;
+  /** Days of the week to show, 0 = Sun … 6 = Sat. Empty means all days. */
+  days: Set<number>;
+  /** When true, show only free gigs. */
+  freeOnly: boolean;
+  sort: SortMode;
   search: string;
   foryou: Set<ForYou>;
   gigs: Gig[];
@@ -25,6 +31,9 @@ export const state: AppState = {
   sizes: new Set<RoomSize>(["small", "mid", "large", "unknown"]),
   genres: new Set<string>(),
   maxPrice: 60,
+  days: new Set<number>(),
+  freeOnly: false,
+  sort: "relevance",
   search: "",
   foryou: new Set<ForYou>(),
   gigs: [],

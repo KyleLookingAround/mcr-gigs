@@ -39,7 +39,10 @@ test("renders gigs from the API and filters by search", async ({ page }) => {
 
   await expect(page.locator("#visible-count")).toHaveText("2");
   await expect(page.getByRole("heading", { name: "Radiohead" })).toBeVisible();
-  await expect(page.getByText("Free")).toBeVisible();
+  // Scope to the gig card so the "Free only" filter chip doesn't also match.
+  await expect(
+    page.locator("article.gig", { hasText: "Local Punk Night" }).locator(".gig-price"),
+  ).toContainText("Free");
 
   await page.fill("#search-box", "punk");
   await expect(page.locator("#visible-count")).toHaveText("1");
