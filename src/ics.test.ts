@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildIcs, gcalLink } from "./ics";
+import { buildIcs, buildIcsMany, gcalLink } from "./ics";
 import type { Gig } from "./types";
 
 function gig(overrides: Partial<Gig> = {}): Gig {
@@ -39,6 +39,16 @@ describe("buildIcs", () => {
     const ics = buildIcs(gig({ door: "" }));
     expect(ics).toContain("DTSTART;VALUE=DATE:20260510");
     expect(ics).toContain("DTEND;VALUE=DATE:20260511");
+  });
+});
+
+describe("buildIcsMany", () => {
+  it("wraps several events in a single calendar", () => {
+    const ics = buildIcsMany([gig({ id: "1" }), gig({ id: "2" })]);
+    expect(ics.match(/BEGIN:VCALENDAR/g)).toHaveLength(1);
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2);
+    expect(ics).toContain("UID:mcrgigs-1@mcr-gigs");
+    expect(ics).toContain("UID:mcrgigs-2@mcr-gigs");
   });
 });
 

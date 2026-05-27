@@ -9,11 +9,12 @@ import { fmtDateHeader } from "./dates";
 
 const COLOUR = { you: "#c8341c", similar: "#1a7a5e", none: "#1a1714" } as const;
 const SIZE_RADIUS: Record<RoomSize, number> = { small: 6, mid: 8, large: 11, unknown: 6 };
+const STAR_PX: Record<RoomSize, number> = { small: 17, mid: 21, large: 27, unknown: 17 };
 const SIZE_ORDER: Record<RoomSize, number> = { unknown: 0, small: 1, mid: 2, large: 3 };
 
 let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
-let markers = new Map<string, L.CircleMarker>();
+let markers = new Map<string, L.CircleMarker | L.Marker>();
 
 interface VenueGroup {
   key: string;
@@ -74,7 +75,8 @@ function renderLegend(): void {
     <span class="lg"><i class="dot" style="background:${COLOUR.similar}"></i>Similar</span>
     <span class="lg"><i class="dot" style="background:${COLOUR.none}"></i>Other</span>
     <span class="lg lg-size"><i class="dot s-small"></i><i class="dot s-large"></i>Room size</span>
-    <span class="lg"><i class="dot station"></i>Station</span>`;
+    <span class="lg"><i class="dot station"></i>Station</span>
+    <span class="lg"><i class="star-legend">★</i>Followed</span>`;
 }
 
 function venueMatch(gigs: Gig[]): keyof typeof COLOUR {
@@ -169,18 +171,31 @@ function draw(gigs: Gig[]): void {
   const located = gigs.filter((g) => g.lat != null && g.lng != null);
   const groups = groupByVenue(located);
   for (const group of groups) {
+    const size = venueSize(group.gigs);
     const colour = COLOUR[venueMatch(group.gigs)];
-    const marker = L.circleMarker([group.lat, group.lng], {
-      radius: SIZE_RADIUS[venueSize(group.gigs)],
-      color: colour,
-      weight: 2,
-      fillColor: colour,
-      fillOpacity: 0.5,
-    })
+    const followed = group.gigs.some((g) => g.followedVenue);
+    // Followed venues get a star pin; everything else a capacity-sized dot.
+    const shape: L.CircleMarker | L.Marker = followed
+      ? L.marker([group.lat, group.lng], {
+          icon: L.divIcon({
+            className: "venue-star",
+            html: `<span class="vs" style="color:${colour};font-size:${STAR_PX[size]}px">★</span>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          }),
+        })
+      : L.circleMarker([group.lat, group.lng], {
+          radius: SIZE_RADIUS[size],
+          color: colour,
+          weight: 2,
+          fillColor: colour,
+          fillOpacity: 0.5,
+        });
+    shape
       .bindTooltip(group.name, { direction: "top" })
       .bindPopup(venuePopup(group))
       .addTo(markerLayer!);
-    markers.set(group.key, marker);
+    markers.set(group.key, shape);
   }
 
   renderVenueList(groups, gigs.length - located.length);

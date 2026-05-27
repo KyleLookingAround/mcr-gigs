@@ -8,12 +8,13 @@ export function isSortMode(s: string): s is SortMode {
   return (SORT_MODES as readonly string[]).includes(s);
 }
 
-/** Saved gigs first, then your-artist matches, then similar, then the rest. */
+/** Saved first, then your-artist matches, similar, followed venues, then rest. */
 function priority(g: Gig): number {
   if (g.saved) return 0;
   if (g.match === "you") return 1;
   if (g.match === "similar") return 2;
-  return 3;
+  if (g.followedVenue) return 3;
+  return 4;
 }
 
 function byDoorThenName(a: Gig, b: Gig): number {

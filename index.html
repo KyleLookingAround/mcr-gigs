@@ -98,6 +98,15 @@
         >
           ≈ Similar
         </button>
+        <button
+          class="chip accent"
+          data-foryou="venue"
+          id="fy-venue"
+          style="display: none"
+          aria-pressed="false"
+        >
+          ♥ Venues
+        </button>
       </div>
       <div class="filter-row" role="group" aria-label="Show and sort">
         <span class="filter-label">Show</span>
@@ -151,6 +160,12 @@
         </div>
         <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
       </div>
+      <div class="filter-row" role="group" aria-label="Actions">
+        <span class="filter-label">Actions</span>
+        <button class="chip" id="surprise-btn">Surprise me</button>
+        <button class="chip" id="share-btn">Share view</button>
+        <button class="chip" id="export-saved" style="display: none">Saved → calendar</button>
+      </div>
     </div>
 
     <div class="status-bar">
@@ -158,13 +173,20 @@
       <div class="view-toggle" role="group" aria-label="View">
         <button class="chip" id="view-list" data-view="list" aria-pressed="true">List</button>
         <button class="chip" id="view-map" data-view="map" aria-pressed="false">Map</button>
+        <button class="chip" id="view-cal" data-view="cal" aria-pressed="false">Calendar</button>
       </div>
       <div class="meta" id="status-meta" aria-live="polite">—</div>
     </div>
 
     <div id="error-container" aria-live="assertive"></div>
 
+    <div id="digest" class="digest" aria-live="polite"></div>
+
     <main id="results" aria-label="Gig results" aria-live="polite"></main>
+
+    <section id="cal-view" aria-label="Gig calendar" hidden>
+      <div id="cal-el"></div>
+    </section>
 
     <section id="map-view" aria-label="Gig map" hidden>
       <div id="map-el" role="application" aria-label="Map of gig venues"></div>

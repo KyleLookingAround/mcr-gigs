@@ -101,3 +101,46 @@ test("map view plots venues and lists them with gig counts", async ({ page }) =>
   await page.getByRole("button", { name: /Gullivers/ }).click();
   await expect(page.locator(".leaflet-popup")).toBeVisible();
 });
+
+test("calendar view shows days and filters the list on click", async ({ page }) => {
+  await page.route("**/api/skiddle*", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        totalcount: 2,
+        results: [
+          {
+            id: 1,
+            eventname: "Radiohead",
+            venue: { name: "O2 Apollo", capacity: 3500 },
+            date: iso(2),
+            link: "https://example.com/1",
+          },
+          {
+            id: 2,
+            eventname: "Local Punk Night",
+            venue: { name: "Gullivers" },
+            date: iso(3),
+            link: "https://example.com/2",
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.locator("#visible-count")).toHaveText("2");
+
+  await page.click("#view-cal");
+  await expect(page.locator("#cal-view")).toBeVisible();
+
+  // Pick the earliest day that has a gig; it filters the list down to that day.
+  await page.locator(".cal-cell:not(.empty):not([disabled])").first().click();
+  await expect(page.locator("#results")).toBeVisible();
+  await expect(page.locator("#visible-count")).toHaveText("1");
+  await expect(page.locator("#digest [data-action='clear-day']")).toBeVisible();
+
+  // Clearing the day filter restores the full list.
+  await page.locator("#digest [data-action='clear-day']").click();
+  await expect(page.locator("#visible-count")).toHaveText("2");
+});

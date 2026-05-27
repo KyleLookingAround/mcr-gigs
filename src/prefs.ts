@@ -1,6 +1,6 @@
 import type { RoomSize } from "./types";
 import { state } from "./state";
-import { PREFS_KEY, SAVED_KEY } from "./config";
+import { PREFS_KEY, SAVED_KEY, FOLLOWED_KEY } from "./config";
 import { isSortMode } from "./sort";
 
 export function loadPrefs(): void {
@@ -23,6 +23,12 @@ export function loadPrefs(): void {
     if (Array.isArray(s)) state.saved = new Set(s.map(String));
   } catch {
     /* ignore corrupt saved list */
+  }
+  try {
+    const v = JSON.parse(localStorage.getItem(FOLLOWED_KEY) || "[]");
+    if (Array.isArray(v)) state.followedVenues = new Set(v.map((x) => String(x).toLowerCase()));
+  } catch {
+    /* ignore corrupt follow list */
   }
 }
 
@@ -49,6 +55,14 @@ export function savePrefs(): void {
 export function saveSaved(): void {
   try {
     localStorage.setItem(SAVED_KEY, JSON.stringify([...state.saved]));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function saveFollowed(): void {
+  try {
+    localStorage.setItem(FOLLOWED_KEY, JSON.stringify([...state.followedVenues]));
   } catch {
     /* ignore */
   }

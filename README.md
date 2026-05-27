@@ -4,7 +4,7 @@ Static gig finder for Manchester. Hits the Skiddle Events API through a Netlify 
 
 Tune it to your taste: connect your **Last.fm** username and gigs by artists you listen to (and artists similar to them) get flagged and floated to the top. Star gigs to save them, and your filters stick between visits — all in the browser, no account needed. Each gig links out to Spotify/YouTube and exports to Google Calendar or an `.ics` file.
 
-Switch to the **Map** view to see venues plotted across central Manchester: markers are colour-coded by taste match and sized by room capacity, with hover labels and a popup of each venue's upcoming gigs. Central rail stations (Piccadilly, Victoria, Oxford Road, Deansgate) are marked too, and each venue shows how far it is from the nearest one. A side list ranks the venues (matches first, then by gig count) — click one to fly straight to it on the map.
+Switch to the **Map** view to see venues plotted across central Manchester: markers are colour-coded by taste match and sized by room capacity, with hover labels and a popup of each venue's upcoming gigs. Venues you follow show as a star. Central rail stations (Piccadilly, Victoria, Oxford Road, Deansgate) are marked too, and each venue shows how far it is from the nearest one. A side list ranks the venues (matches first, then by gig count) — click one to fly straight to it on the map. There's also a **Calendar** view: a month heatmap shaded by gig density (a dot marks days with taste matches) — tap a day to filter the list to it.
 
 ## Deploy
 
@@ -31,10 +31,12 @@ That's it. Visit the site URL.
 ## Personalization (all client-side)
 
 - **Last.fm matching:** type your username in the _Last.fm_ box. The app pulls your top artists (and similar artists for "people like me"), flags matching gigs with a `♪ Your artist` / `≈ Similar to yours` badge, and the _For you_ filter lets you show only those. Matching gigs that weren't around on your last visit also get a `New` badge. Results are cached in `localStorage` for a day.
-- **Saved gigs:** the ☆ on each gig saves it; _For you → ★ Saved_ shows your saved list.
+- **Saved gigs:** the ☆ on each gig saves it; _For you → ★ Saved_ shows your saved list. **Saved → calendar** exports them all to one `.ics`.
+- **Follow venues:** the ♡ by a venue name follows it; followed venues are boosted, get a `♥ Venue` badge, show as a star on the map, and _For you → ♥ Venues_ filters to them.
 - **Day, free and sort controls:** filter to specific days of the week, show only free gigs, and sort each day by relevance, price, or room capacity.
-- **Per-act links:** Spotify & YouTube links search the billed artist (not just the event title), so they land on the right page more often.
-- **Sticky preferences:** window, room sizes, days, free-only, sort, genres, max price and your Last.fm username persist between visits.
+- **Share & surprise:** **Share view** copies a link that reproduces your current filters (and your saved picks) for someone else; **Surprise me** jumps to a random gig from what's on screen.
+- **Per-act links:** Spotify, YouTube, Bandcamp & Songkick links search the billed artist (not just the event title), so they land on the right page more often.
+- **Sticky preferences:** window, room sizes, days, free-only, sort, genres, max price, followed venues and your Last.fm username persist between visits.
 - **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus _All_). Results are grouped by day. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.
 - **Per-gig links:** Spotify & YouTube search, plus Google Calendar / `.ics` export.
 

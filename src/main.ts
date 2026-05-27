@@ -1,14 +1,15 @@
 import "./styles.css";
 import { state, PRICE_MAX } from "./state";
-import { loadPrefs, savePrefs, saveSaved } from "./prefs";
+import { loadPrefs, savePrefs, saveSaved, saveFollowed } from "./prefs";
 import { fetchAllGigs, readCache, writeCache } from "./data/skiddle";
 import { fetchTaste, readTasteCache } from "./data/lastfm";
 import { decorate, render, renderLastfmStatus, filteredGigs, setAfterRender } from "./render";
-import { downloadIcs } from "./ics";
-import { initEasterEggs, maybeLegendToast } from "./eggs";
+import { downloadIcs, downloadIcsMany } from "./ics";
+import { initEasterEggs, maybeLegendToast, showToast } from "./eggs";
 import { byId, setPressed } from "./dom";
 import { loadSeen, recordSeen } from "./seen";
 import { isSortMode } from "./sort";
+import { serializeShare, parseShare } from "./share";
 import type { ForYou, RoomSize } from "./types";
 
 function priceText(): string {
@@ -26,8 +27,85 @@ function updateForYouChips(): void {
   const hasLf = state.lastfm.top.size > 0;
   byId("fy-you").style.display = hasLf ? "" : "none";
   byId("fy-similar").style.display = state.lastfm.similar.size > 0 ? "" : "none";
+  byId("fy-venue").style.display = state.followedVenues.size > 0 ? "" : "none";
   if (!hasLf) state.foryou.delete("you");
   if (state.lastfm.similar.size === 0) state.foryou.delete("similar");
+  if (state.followedVenues.size === 0) state.foryou.delete("venue");
+}
+
+/** URL that reproduces the current filtered view (and shares saved picks). */
+function shareUrl(): string {
+  const hash = serializeShare({
+    window: state.window,
+    days: [...state.days],
+    sizes: [...state.sizes],
+    genres: [...state.genres],
+    maxPrice: state.maxPrice < PRICE_MAX ? state.maxPrice : undefined,
+    freeOnly: state.freeOnly,
+    sort: state.sort,
+    month: state.monthFilter || undefined,
+    foryou: [...state.foryou],
+    search: state.search || undefined,
+    saved: [...state.saved],
+  });
+  return location.origin + location.pathname + (hash ? "#" + hash : "");
+}
+
+/** Apply a shared view from the URL hash. Saved-gig ids are merged into the
+ *  visitor's own saved list (additive and reversible). */
+function applyShare(): void {
+  if (location.hash.length < 2) return;
+  const s = parseShare(location.hash);
+  if (s.window != null) state.window = s.window;
+  if (s.days) state.days = new Set(s.days);
+  if (s.sizes) state.sizes = new Set(s.sizes);
+  if (s.genres) state.genres = new Set(s.genres);
+  if (s.maxPrice != null) state.maxPrice = s.maxPrice;
+  if (s.freeOnly != null) state.freeOnly = s.freeOnly;
+  if (s.sort) state.sort = s.sort;
+  if (s.month) state.monthFilter = s.month;
+  if (s.foryou) state.foryou = new Set(s.foryou);
+  if (s.search) state.search = s.search;
+  if (s.saved && s.saved.length) {
+    for (const id of s.saved) state.saved.add(id);
+    saveSaved();
+    showToast(`Imported ${s.saved.length} saved gig${s.saved.length === 1 ? "" : "s"} from link.`);
+  }
+}
+
+function pickSurprise(): void {
+  const vis = filteredGigs();
+  if (vis.length === 0) {
+    showToast("No gigs match — try loosening filters.");
+    return;
+  }
+  const pick = vis[Math.floor(Math.random() * vis.length)];
+  void setView("list").then(() =>
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        `#results article[data-gig-id="${CSS.escape(pick.id)}"]`,
+      );
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("flash");
+      void el.offsetWidth; // restart the highlight animation
+      el.classList.add("flash");
+    }),
+  );
+}
+
+async function copyShareLink(): Promise<void> {
+  const url = shareUrl();
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link copied to clipboard.");
+      return;
+    } catch {
+      /* fall through to showing the link */
+    }
+  }
+  showToast(url);
 }
 
 function applyStateToUI(): void {
@@ -48,6 +126,7 @@ function applyStateToUI(): void {
   byId<HTMLInputElement>("price-range").value = String(state.maxPrice);
   updatePriceUI();
   byId<HTMLInputElement>("lastfm-user").value = state.lastfm.user;
+  updateForYouChips();
 }
 
 async function connectLastfm(user: string, { force = false } = {}): Promise<void> {
@@ -102,10 +181,11 @@ function loadMapModule(): Promise<typeof import("./map")> {
   return mapModule;
 }
 
-async function setView(v: "list" | "map"): Promise<void> {
+async function setView(v: "list" | "map" | "cal"): Promise<void> {
   state.view = v;
   setPressed(byId("view-list"), v === "list");
   setPressed(byId("view-map"), v === "map");
+  setPressed(byId("view-cal"), v === "cal");
   render(); // toggles which container is visible
   if (v === "map") {
     const m = await loadMapModule();
@@ -224,6 +304,18 @@ function bind(): void {
 
   byId("view-list").addEventListener("click", () => void setView("list"));
   byId("view-map").addEventListener("click", () => void setView("map"));
+  byId("view-cal").addEventListener("click", () => void setView("cal"));
+
+  byId("surprise-btn").addEventListener("click", pickSurprise);
+  byId("share-btn").addEventListener("click", () => void copyShareLink());
+  byId("export-saved").addEventListener("click", () => {
+    const saved = state.gigs.filter((g) => state.saved.has(g.id));
+    if (saved.length === 0) {
+      showToast("No saved gigs in the current window.");
+      return;
+    }
+    downloadIcsMany(saved);
+  });
 
   const lfInput = byId<HTMLInputElement>("lastfm-user");
   byId("lastfm-btn").addEventListener(
@@ -251,7 +343,23 @@ function bind(): void {
     render();
   });
 
-  // Per-gig actions (save / .ics) via delegation so they survive re-renders.
+  // Clear the calendar's exact-day filter from the digest line.
+  byId("digest").addEventListener("click", (e) => {
+    if (!(e.target as HTMLElement).closest("[data-action='clear-day']")) return;
+    state.dayFilter = "";
+    render();
+  });
+
+  // Pick a day in the calendar → filter the list to it.
+  byId("cal-view").addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-cal-date]");
+    if (!btn) return;
+    state.monthFilter = "";
+    state.dayFilter = btn.dataset.calDate!;
+    void setView("list");
+  });
+
+  // Per-gig actions (save / follow / .ics) via delegation so they survive re-renders.
   byId("results").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
     if (!btn) return;
@@ -264,6 +372,15 @@ function bind(): void {
       decorate();
       render();
       renderLastfmStatus();
+    } else if (btn.dataset.action === "follow") {
+      const name = g.venue.toLowerCase().trim();
+      if (!name) return;
+      if (state.followedVenues.has(name)) state.followedVenues.delete(name);
+      else state.followedVenues.add(name);
+      saveFollowed();
+      updateForYouChips();
+      decorate();
+      render();
     } else if (btn.dataset.action === "ics") {
       downloadIcs(g);
     }
@@ -280,12 +397,14 @@ function registerServiceWorker(): void {
 }
 
 setAfterRender(() => {
+  byId("export-saved").style.display = state.saved.size ? "" : "none";
   if (state.view !== "map") return;
   void loadMapModule().then((m) => m.update(filteredGigs()));
 });
 
 loadPrefs();
 loadSeen();
+applyShare();
 bind();
 applyStateToUI();
 initEasterEggs();
