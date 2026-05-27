@@ -46,143 +46,158 @@
     <div class="filters">
       <div class="filter-row" role="group" aria-label="Time window">
         <span class="filter-label" title="How far ahead to load gigs from the source">Window</span>
-        <button class="chip" data-window="7" aria-pressed="false">Next 7d</button>
-        <button class="chip" data-window="14" aria-pressed="false">Next 14d</button>
-        <button class="chip" data-window="30" aria-pressed="false">Next 30d</button>
-        <button class="chip" data-window="60" aria-pressed="false">Next 60d</button>
-        <button class="chip" data-window="90" aria-pressed="false">Next 90d</button>
-        <button class="chip" data-window="180" aria-pressed="false">Next 180d</button>
-        <button class="chip" data-window="365" aria-pressed="false">Next 365d</button>
+        <div class="row-body">
+          <button class="chip" data-window="7" aria-pressed="false">7d</button>
+          <button class="chip" data-window="14" aria-pressed="false">14d</button>
+          <button class="chip" data-window="30" aria-pressed="false">30d</button>
+          <button class="chip" data-window="60" aria-pressed="false">60d</button>
+          <button class="chip" data-window="90" aria-pressed="false">90d</button>
+          <button class="chip" data-window="180" aria-pressed="false">180d</button>
+          <button class="chip" data-window="365" aria-pressed="false">365d</button>
+        </div>
       </div>
       <div class="filter-row" id="month-row" style="display: none" role="group" aria-label="Month">
         <span class="filter-label" title="Filter the already-loaded gigs down to one month"
           >Month</span
         >
-        <div id="month-chips" style="display: contents"></div>
+        <div id="month-chips" class="row-body"></div>
       </div>
       <div class="filter-row" role="group" aria-label="Room size">
         <span class="filter-label">Room size</span>
-        <button class="chip" data-size="small" aria-pressed="false">Small (≤300)</button>
-        <button class="chip" data-size="mid" aria-pressed="false">Mid (300–1200)</button>
-        <button class="chip" data-size="large" aria-pressed="false">Large (1200+)</button>
-        <button class="chip" data-size="unknown" aria-pressed="false">Unknown</button>
+        <div class="row-body">
+          <button class="chip" data-size="small" aria-pressed="false">Small ≤300</button>
+          <button class="chip" data-size="mid" aria-pressed="false">Mid 300–1200</button>
+          <button class="chip" data-size="large" aria-pressed="false">Large 1200+</button>
+          <button class="chip" data-size="unknown" aria-pressed="false">Unknown</button>
+        </div>
       </div>
       <div class="filter-row" role="group" aria-label="Days of the week">
         <span class="filter-label" title="Show only gigs on the chosen days">Days</span>
-        <button class="chip" data-day="1" aria-pressed="false">Mon</button>
-        <button class="chip" data-day="2" aria-pressed="false">Tue</button>
-        <button class="chip" data-day="3" aria-pressed="false">Wed</button>
-        <button class="chip" data-day="4" aria-pressed="false">Thu</button>
-        <button class="chip" data-day="5" aria-pressed="false">Fri</button>
-        <button class="chip" data-day="6" aria-pressed="false">Sat</button>
-        <button class="chip" data-day="0" aria-pressed="false">Sun</button>
+        <div class="row-body">
+          <button class="chip" data-day="1" aria-pressed="false">Mon</button>
+          <button class="chip" data-day="2" aria-pressed="false">Tue</button>
+          <button class="chip" data-day="3" aria-pressed="false">Wed</button>
+          <button class="chip" data-day="4" aria-pressed="false">Thu</button>
+          <button class="chip" data-day="5" aria-pressed="false">Fri</button>
+          <button class="chip" data-day="6" aria-pressed="false">Sat</button>
+          <button class="chip" data-day="0" aria-pressed="false">Sun</button>
+        </div>
       </div>
       <div class="filter-row" id="foryou-row" role="group" aria-label="For you">
         <span class="filter-label">For you</span>
-        <button class="chip accent" data-foryou="saved" aria-pressed="false">★ Saved</button>
-        <button
-          class="chip accent"
-          data-foryou="shared"
-          id="fy-shared"
-          style="display: none"
-          aria-pressed="false"
-        >
-          ↗ Shared
-        </button>
-        <button
-          class="chip accent"
-          data-foryou="you"
-          id="fy-you"
-          style="display: none"
-          aria-pressed="false"
-        >
-          ♪ Your artists
-        </button>
-        <button
-          class="chip accent"
-          data-foryou="similar"
-          id="fy-similar"
-          style="display: none"
-          aria-pressed="false"
-        >
-          ≈ Similar
-        </button>
-        <button
-          class="chip accent"
-          data-foryou="venue"
-          id="fy-venue"
-          style="display: none"
-          aria-pressed="false"
-        >
-          ♥ Venues
-        </button>
+        <div class="row-body">
+          <button class="chip accent" data-foryou="saved" aria-pressed="false">★ Saved</button>
+          <button
+            class="chip accent"
+            data-foryou="shared"
+            id="fy-shared"
+            style="display: none"
+            aria-pressed="false"
+          >
+            ↗ Shared
+          </button>
+          <button
+            class="chip accent"
+            data-foryou="you"
+            id="fy-you"
+            style="display: none"
+            aria-pressed="false"
+          >
+            ♪ Your artists
+          </button>
+          <button
+            class="chip accent"
+            data-foryou="similar"
+            id="fy-similar"
+            style="display: none"
+            aria-pressed="false"
+          >
+            ≈ Similar
+          </button>
+          <button
+            class="chip accent"
+            data-foryou="venue"
+            id="fy-venue"
+            style="display: none"
+            aria-pressed="false"
+          >
+            ♥ Venues
+          </button>
+        </div>
       </div>
-      <div class="filter-row" role="group" aria-label="Show and sort">
-        <span class="filter-label">Show</span>
-        <button class="chip accent" id="free-only" aria-pressed="false">Free only</button>
-        <label class="filter-label" for="sort-select">Sort</label>
+      <div class="filter-row" id="genre-row" style="display: none" role="group" aria-label="Genres">
+        <span class="filter-label">Genres</span>
+        <div id="genre-chips" class="row-body"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Last.fm</span>
+        <div class="row-body">
+          <input
+            type="text"
+            class="search-box lastfm-input"
+            id="lastfm-user"
+            placeholder="your last.fm username"
+            aria-label="Last.fm username"
+            autocomplete="off"
+          />
+          <button class="chip" id="lastfm-btn">Connect</button>
+          <span class="lastfm-status" id="lastfm-status" aria-live="polite"></span>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Search</span>
+        <div class="row-body">
+          <input
+            type="text"
+            class="search-box"
+            id="search-box"
+            placeholder="artist, venue, anything…"
+            aria-label="Search gigs"
+          />
+          <button class="chip accent" id="free-only" aria-pressed="false">Free only</button>
+          <div class="price-control">
+            <label class="filter-label" for="price-range"
+              >Max <span id="price-val">£60</span></label
+            >
+            <input
+              type="range"
+              id="price-range"
+              min="5"
+              max="100"
+              value="60"
+              step="5"
+              aria-describedby="price-note"
+            />
+            <span class="price-note" id="price-note"></span>
+          </div>
+          <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="filter-row" role="group" aria-label="Tools">
+        <span class="filter-label">Tools</span>
+        <div class="row-body">
+          <button class="chip" id="surprise-btn">Surprise me</button>
+          <button class="chip" id="share-btn">Share view</button>
+          <button class="chip" id="export-saved" style="display: none">Saved → calendar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="count"><span class="num" id="visible-count">0</span> gigs</div>
+      <div class="status-right">
+        <span class="sort-label">Sort</span>
         <select id="sort-select" class="sort-select" aria-label="Sort gigs">
           <option value="relevance">Relevance</option>
           <option value="price-asc">Price: low to high</option>
           <option value="price-desc">Price: high to low</option>
           <option value="cap-desc">Capacity: big rooms first</option>
         </select>
-      </div>
-      <div class="filter-row" id="genre-row" style="display: none" role="group" aria-label="Genres">
-        <span class="filter-label">Genres</span>
-        <div id="genre-chips" style="display: contents"></div>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label">Last.fm</span>
-        <input
-          type="text"
-          class="search-box lastfm-input"
-          id="lastfm-user"
-          placeholder="your last.fm username"
-          aria-label="Last.fm username"
-          autocomplete="off"
-        />
-        <button class="chip" id="lastfm-btn">Connect</button>
-        <span class="lastfm-status" id="lastfm-status" aria-live="polite"></span>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label">Search</span>
-        <input
-          type="text"
-          class="search-box"
-          id="search-box"
-          placeholder="artist, venue, anything…"
-          aria-label="Search gigs"
-        />
-        <div class="price-control">
-          <label class="filter-label" for="price-range">Max <span id="price-val">£60</span></label>
-          <input
-            type="range"
-            id="price-range"
-            min="5"
-            max="100"
-            value="60"
-            step="5"
-            aria-describedby="price-note"
-          />
-          <span class="price-note" id="price-note"></span>
+        <div class="view-toggle" role="group" aria-label="View">
+          <button class="chip" id="view-list" data-view="list" aria-pressed="true">List</button>
+          <button class="chip" id="view-map" data-view="map" aria-pressed="false">Map</button>
+          <button class="chip" id="view-cal" data-view="cal" aria-pressed="false">Calendar</button>
         </div>
-        <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
-      </div>
-      <div class="filter-row" role="group" aria-label="Actions">
-        <span class="filter-label">Actions</span>
-        <button class="chip" id="surprise-btn">Surprise me</button>
-        <button class="chip" id="share-btn">Share view</button>
-        <button class="chip" id="export-saved" style="display: none">Saved → calendar</button>
-      </div>
-    </div>
-
-    <div class="status-bar">
-      <div class="count"><span class="num" id="visible-count">0</span> gigs</div>
-      <div class="view-toggle" role="group" aria-label="View">
-        <button class="chip" id="view-list" data-view="list" aria-pressed="true">List</button>
-        <button class="chip" id="view-map" data-view="map" aria-pressed="false">Map</button>
-        <button class="chip" id="view-cal" data-view="cal" aria-pressed="false">Calendar</button>
       </div>
       <div class="meta" id="status-meta" aria-live="polite">—</div>
     </div>

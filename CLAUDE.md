@@ -69,6 +69,9 @@ Data flows: edge proxy → `data/*` fetch+normalise → `state` → `render`/`ma
   actions use `data-action`/`data-id`.
 - **Chips** toggle visual + `aria-pressed` together via `setPressed`. Keep the
   accessibility parity (aria-pressed, labels, focus-visible).
+- **Filter rows** are a 2-col grid: a leading `.filter-label` + a `.row-body`
+  flex-wrap container holding the controls. Put chips/inputs inside `.row-body`
+  so wrapped items align under the group, not under the label.
 - **Dates** are ISO `YYYY-MM-DD` parsed at _local_ midnight via `parseLocalDate` —
   never `new Date(iso)` (UTC shift bug). Use the `dates.ts` helpers.
 

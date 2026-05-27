@@ -83,24 +83,34 @@ h1 {
 }
 
 .filters {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 2px solid var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 9px;
 }
 .filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  column-gap: 14px;
+  align-items: start;
 }
 .filter-label {
   font-size: 10px;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-right: 4px;
+}
+/* Vertically nudge a row's leading label to sit on the first chip's text. */
+.filter-row > .filter-label {
+  padding-top: 6px;
+}
+.row-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 .chip {
   display: inline-block;
@@ -182,10 +192,24 @@ h1 {
 .status-bar {
   padding: 12px 20px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 8px 16px;
   border-bottom: 1px solid var(--line);
   font-size: 12px;
+}
+.status-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sort-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .status-bar .count {
   font-family: "Fraunces", serif;
