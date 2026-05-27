@@ -83,24 +83,34 @@ h1 {
 }
 
 .filters {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 2px solid var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 9px;
 }
 .filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  column-gap: 14px;
+  align-items: start;
 }
 .filter-label {
   font-size: 10px;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-right: 4px;
+}
+/* Vertically nudge a row's leading label to sit on the first chip's text. */
+.filter-row > .filter-label {
+  padding-top: 6px;
+}
+.row-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 .chip {
   display: inline-block;
@@ -165,13 +175,41 @@ h1 {
   background: var(--red);
 }
 
+.sort-select {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  background: var(--paper-2);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.sort-select:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+}
+
 .status-bar {
   padding: 12px 20px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 8px 16px;
   border-bottom: 1px solid var(--line);
   font-size: 12px;
+}
+.status-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sort-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .status-bar .count {
   font-family: "Fraunces", serif;
@@ -498,6 +536,11 @@ footer {
   background: var(--red);
   color: var(--paper);
 }
+.match-badge.new {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
 .gig.match-you {
   box-shadow: inset 4px 0 0 var(--red);
 }
@@ -649,6 +692,49 @@ footer {
   width: 12px;
   height: 12px;
 }
+.dot.station {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+  transform: rotate(45deg);
+}
+/* Leaflet positions the marker root with an inline transform, so the rotated
+   diamond lives on a pseudo-element to avoid clobbering that placement. */
+.station-pin::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+  transform: rotate(45deg);
+  box-shadow: 0 1px 2px rgba(26, 23, 20, 0.35);
+}
+.pop-station {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 2px 0 6px;
+}
+.venue-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.venue-star .vs {
+  line-height: 1;
+  text-shadow:
+    0 0 2px var(--paper),
+    0 1px 2px rgba(26, 23, 20, 0.4);
+}
+.star-legend {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink);
+}
 .venue-item {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -714,6 +800,163 @@ footer {
 .leaflet-container {
   font-family: "JetBrains Mono", monospace;
 }
+
+/* ── Digest line ──────────────────────────────────────────────────────── */
+.digest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  min-height: 0;
+}
+.digest:not(:empty) {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.digest-line {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Follow-venue toggle + badge ──────────────────────────────────────── */
+.follow-venue {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.follow-venue:hover,
+.follow-venue.on {
+  color: var(--red);
+}
+.match-badge.venue {
+  border-color: var(--red);
+  color: var(--red);
+}
+.match-badge.shared {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+.gig.followed-venue {
+  box-shadow: inset 4px 0 0 rgba(200, 52, 28, 0.55);
+}
+
+/* ── Surprise-me highlight ────────────────────────────────────────────── */
+@keyframes gig-flash {
+  0% {
+    background: rgba(200, 52, 28, 0.22);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.gig.flash {
+  animation: gig-flash 1.6s ease-out;
+}
+
+/* ── Calendar view ────────────────────────────────────────────────────── */
+#cal-view {
+  padding: 20px;
+  border-top: 1px solid var(--line);
+}
+#cal-view[hidden] {
+  display: none;
+}
+.cal-month-block {
+  margin-bottom: 28px;
+}
+.cal-month {
+  font-family: "Fraunces", serif;
+  font-weight: 900;
+  font-size: 22px;
+  margin: 0 0 10px;
+}
+.cal-dow,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-dow {
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+.cal-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  text-align: left;
+  padding: 4px 5px;
+  font-family: "JetBrains Mono", monospace;
+  cursor: pointer;
+  color: var(--ink);
+}
+.cal-cell.empty {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+.cal-cell:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.cal-cell .cal-num {
+  font-size: 11px;
+}
+.cal-cell .cal-count {
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.cal-cell .cal-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.cal-cell.h1 {
+  background: rgba(200, 52, 28, 0.12);
+}
+.cal-cell.h2 {
+  background: rgba(200, 52, 28, 0.28);
+}
+.cal-cell.h3 {
+  background: rgba(200, 52, 28, 0.5);
+  color: var(--paper);
+}
+.cal-cell.h4 {
+  background: rgba(200, 52, 28, 0.78);
+  color: var(--paper);
+}
+.cal-cell.today {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.cal-cell.sel {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.cal-cell:not(:disabled):hover {
+  border-color: var(--ink);
+}
+
 @media (max-width: 720px) {
   #map-view {
     grid-template-columns: 1fr;
@@ -725,5 +968,8 @@ footer {
   }
   #map-panel {
     max-height: none;
+  }
+  .cal-cell .cal-count {
+    font-size: 11px;
   }
 }

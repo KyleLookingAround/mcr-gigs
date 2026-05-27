@@ -2,17 +2,19 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Gig, RoomSize } from "./types";
 import { MCR_CENTRE } from "./config";
-import { haversineMetres, formatMiles } from "./geo";
+import { nearest, formatMiles } from "./geo";
+import { STATIONS } from "./stations";
 import { byId, escapeHtml } from "./dom";
 import { fmtDateHeader } from "./dates";
 
 const COLOUR = { you: "#c8341c", similar: "#1a7a5e", none: "#1a1714" } as const;
 const SIZE_RADIUS: Record<RoomSize, number> = { small: 6, mid: 8, large: 11, unknown: 6 };
+const STAR_PX: Record<RoomSize, number> = { small: 17, mid: 21, large: 27, unknown: 17 };
 const SIZE_ORDER: Record<RoomSize, number> = { unknown: 0, small: 1, mid: 2, large: 3 };
 
 let map: L.Map | null = null;
 let markerLayer: L.LayerGroup | null = null;
-let markers = new Map<string, L.CircleMarker>();
+let markers = new Map<string, L.CircleMarker | L.Marker>();
 
 interface VenueGroup {
   key: string;
@@ -31,6 +33,7 @@ function init(): void {
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
+  drawStations();
   renderLegend();
 
   byId("venue-list").addEventListener("click", (e) => {
@@ -38,9 +41,32 @@ function init(): void {
     if (!item || !map) return;
     const marker = markers.get(item.dataset.venue!);
     if (!marker) return;
+    // On the stacked (narrow) layout the map sits above the list, so the fly-to
+    // happens off-screen; scroll it back into view first.
+    if (window.matchMedia("(max-width: 720px)").matches) {
+      byId("map-el").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.4 });
     marker.openPopup();
   });
+}
+
+/** Plot the fixed rail stations once; they don't change with the gig results. */
+function drawStations(): void {
+  const layer = L.layerGroup().addTo(map!);
+  for (const s of STATIONS) {
+    L.marker([s.lat, s.lng], {
+      icon: L.divIcon({
+        className: "station-pin",
+        html: "",
+        iconSize: [12, 12],
+        iconAnchor: [6, 6],
+      }),
+      keyboard: false,
+    })
+      .bindTooltip(`${s.name} station`, { direction: "top" })
+      .addTo(layer);
+  }
 }
 
 function renderLegend(): void {
@@ -48,7 +74,9 @@ function renderLegend(): void {
     <span class="lg"><i class="dot" style="background:${COLOUR.you}"></i>Your artist</span>
     <span class="lg"><i class="dot" style="background:${COLOUR.similar}"></i>Similar</span>
     <span class="lg"><i class="dot" style="background:${COLOUR.none}"></i>Other</span>
-    <span class="lg lg-size"><i class="dot s-small"></i><i class="dot s-large"></i>Room size</span>`;
+    <span class="lg lg-size"><i class="dot s-small"></i><i class="dot s-large"></i>Room size</span>
+    <span class="lg"><i class="dot station"></i>Station</span>
+    <span class="lg"><i class="star-legend">★</i>Followed</span>`;
 }
 
 function venueMatch(gigs: Gig[]): keyof typeof COLOUR {
@@ -79,8 +107,17 @@ function groupByVenue(gigs: Gig[]): VenueGroup[] {
   return [...map.values()];
 }
 
+function stationLabel(lat: number, lng: number): string {
+  const ns = nearest(lat, lng, STATIONS);
+  return ns ? `${formatMiles(ns.metres)} · ${ns.name}` : "";
+}
+
 function venuePopup(group: VenueGroup): string {
   const head = `<strong>${escapeHtml(group.name)}</strong>`;
+  const ns = nearest(group.lat, group.lng, STATIONS);
+  const stationLine = ns
+    ? `<div class="pop-station">${formatMiles(ns.metres)} from ${escapeHtml(ns.name)} station</div>`
+    : "";
   const rows = group.gigs
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date) || a.door.localeCompare(b.door))
@@ -90,12 +127,12 @@ function venuePopup(group: VenueGroup): string {
       return `<li><a href="${escapeHtml(g.url)}" target="_blank" rel="noopener">${escapeHtml(g.name)}</a><span class="pop-when">${when}</span></li>`;
     })
     .join("");
-  return `<div class="map-pop">${head}<ul>${rows}</ul></div>`;
+  return `<div class="map-pop">${head}${stationLine}<ul>${rows}</ul></div>`;
 }
 
 function venueItem(group: VenueGroup): string {
   const match = venueMatch(group.gigs);
-  const dist = formatMiles(haversineMetres(MCR_CENTRE.lat, MCR_CENTRE.lng, group.lat, group.lng));
+  const dist = stationLabel(group.lat, group.lng);
   const n = group.gigs.length;
   return `<button class="venue-item" data-venue="${escapeHtml(group.key)}">
     <i class="dot" style="background:${COLOUR[match]}"></i>
@@ -134,18 +171,31 @@ function draw(gigs: Gig[]): void {
   const located = gigs.filter((g) => g.lat != null && g.lng != null);
   const groups = groupByVenue(located);
   for (const group of groups) {
+    const size = venueSize(group.gigs);
     const colour = COLOUR[venueMatch(group.gigs)];
-    const marker = L.circleMarker([group.lat, group.lng], {
-      radius: SIZE_RADIUS[venueSize(group.gigs)],
-      color: colour,
-      weight: 2,
-      fillColor: colour,
-      fillOpacity: 0.5,
-    })
+    const followed = group.gigs.some((g) => g.followedVenue);
+    // Followed venues get a star pin; everything else a capacity-sized dot.
+    const shape: L.CircleMarker | L.Marker = followed
+      ? L.marker([group.lat, group.lng], {
+          icon: L.divIcon({
+            className: "venue-star",
+            html: `<span class="vs" style="color:${colour};font-size:${STAR_PX[size]}px">★</span>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          }),
+        })
+      : L.circleMarker([group.lat, group.lng], {
+          radius: SIZE_RADIUS[size],
+          color: colour,
+          weight: 2,
+          fillColor: colour,
+          fillOpacity: 0.5,
+        });
+    shape
       .bindTooltip(group.name, { direction: "top" })
       .bindPopup(venuePopup(group))
       .addTo(markerLayer!);
-    markers.set(group.key, marker);
+    markers.set(group.key, shape);
   }
 
   renderVenueList(groups, gigs.length - located.length);

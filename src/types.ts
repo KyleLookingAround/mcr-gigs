@@ -2,7 +2,7 @@ export type RoomSize = "small" | "mid" | "large" | "unknown";
 
 export type MatchKind = "you" | "similar" | null;
 
-export type ForYou = "saved" | "you" | "similar";
+export type ForYou = "saved" | "shared" | "you" | "similar" | "venue";
 
 /** A gig normalised from a raw upstream event, ready for rendering. */
 export interface Gig {
@@ -25,11 +25,19 @@ export interface Gig {
   description: string;
   url: string;
   image: string;
+  /** Original artist/lineup display names from the upstream, in order. */
+  artists: string[];
   /** Lowercase candidate artist/lineup strings used for taste matching. */
   artistsNorm: string[];
   // Derived per render pass:
   saved?: boolean;
   match?: MatchKind;
+  /** True when this gig id wasn't seen on a previous visit. */
+  isNew?: boolean;
+  /** True when this gig's venue is one the user follows. */
+  followedVenue?: boolean;
+  /** True when this gig was shared with the user via a link. */
+  shared?: boolean;
 }
 
 /** The shape we depend on from a Skiddle event. Everything is optional. */
@@ -68,4 +76,7 @@ export interface Prefs {
   genres: string[];
   maxPrice: number;
   lastfmUser: string;
+  days: number[];
+  freeOnly: boolean;
+  sort: string;
 }

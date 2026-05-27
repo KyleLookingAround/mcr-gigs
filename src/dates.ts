@@ -26,6 +26,11 @@ export function nextDay(iso: string): string {
   return addDaysIso(iso, 1);
 }
 
+/** Day of week for an ISO date, 0 = Sunday … 6 = Saturday (local time). */
+export function dayOfWeek(iso: string): number {
+  return parseLocalDate(iso).getDay();
+}
+
 /** [minDate, maxDate] window we ask the upstream for and trim results to. */
 export function dateRange(windowDays: number): { minDate: string; maxDate: string } {
   const minDate = todayIso();
