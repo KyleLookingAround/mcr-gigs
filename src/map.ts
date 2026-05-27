@@ -40,6 +40,11 @@ function init(): void {
     if (!item || !map) return;
     const marker = markers.get(item.dataset.venue!);
     if (!marker) return;
+    // On the stacked (narrow) layout the map sits above the list, so the fly-to
+    // happens off-screen; scroll it back into view first.
+    if (window.matchMedia("(max-width: 720px)").matches) {
+      byId("map-el").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), { duration: 0.4 });
     marker.openPopup();
   });
