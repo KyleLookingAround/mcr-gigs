@@ -2,7 +2,7 @@ export type RoomSize = "small" | "mid" | "large" | "unknown";
 
 export type MatchKind = "you" | "similar" | null;
 
-export type ForYou = "saved" | "you" | "similar" | "venue";
+export type ForYou = "saved" | "shared" | "you" | "similar" | "venue";
 
 /** A gig normalised from a raw upstream event, ready for rendering. */
 export interface Gig {
@@ -36,6 +36,8 @@ export interface Gig {
   isNew?: boolean;
   /** True when this gig's venue is one the user follows. */
   followedVenue?: boolean;
+  /** True when this gig was shared with the user via a link. */
+  shared?: boolean;
 }
 
 /** The shape we depend on from a Skiddle event. Everything is optional. */

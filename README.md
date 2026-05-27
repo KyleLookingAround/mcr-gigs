@@ -34,7 +34,7 @@ That's it. Visit the site URL.
 - **Saved gigs:** the ☆ on each gig saves it; _For you → ★ Saved_ shows your saved list. **Saved → calendar** exports them all to one `.ics`.
 - **Follow venues:** the ♡ by a venue name follows it; followed venues are boosted, get a `♥ Venue` badge, show as a star on the map, and _For you → ♥ Venues_ filters to them.
 - **Day, free and sort controls:** filter to specific days of the week, show only free gigs, and sort each day by relevance, price, or room capacity.
-- **Share & surprise:** **Share view** copies a link that reproduces your current filters (and your saved picks) for someone else; **Surprise me** jumps to a random gig from what's on screen.
+- **Share & surprise:** **Share view** copies a link reproducing your current filters; share while on the _★ Saved_ filter and it also carries your shortlist — the recipient sees those as a separate _↗ Shared_ set (it never touches their own saved gigs). **Surprise me** jumps to a random gig from what's on screen.
 - **Per-act links:** Spotify, YouTube, Bandcamp & Songkick links search the billed artist (not just the event title), so they land on the right page more often.
 - **Sticky preferences:** window, room sizes, days, free-only, sort, genres, max price, followed venues and your Last.fm username persist between visits.
 - **Window** (next 7/14/30/60/90/180/365 days) sets how much is fetched from Skiddle; the **Month** chips then filter the loaded gigs down to a single month (one chip per month present, plus _All_). Results are grouped by day. Gigs Skiddle returns outside the window — e.g. stray past-dated recurring events — are trimmed.

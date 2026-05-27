@@ -815,6 +815,11 @@ footer {
   border-color: var(--red);
   color: var(--red);
 }
+.match-badge.shared {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
 .gig.followed-venue {
   box-shadow: inset 4px 0 0 rgba(200, 52, 28, 0.55);
 }

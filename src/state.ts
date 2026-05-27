@@ -19,6 +19,8 @@ export interface AppState {
   foryou: Set<ForYou>;
   gigs: Gig[];
   saved: Set<string>;
+  /** Gig ids shared with the user via a link (session-only, not persisted). */
+  sharedSaved: Set<string>;
   /** Followed venue names, lowercased. */
   followedVenues: Set<string>;
   lastfm: LastfmState;
@@ -43,6 +45,7 @@ export const state: AppState = {
   foryou: new Set<ForYou>(),
   gigs: [],
   saved: new Set<string>(),
+  sharedSaved: new Set<string>(),
   followedVenues: new Set<string>(),
   lastfm: { user: "", top: new Set(), similar: new Set(), loading: false, error: null },
   loading: false,

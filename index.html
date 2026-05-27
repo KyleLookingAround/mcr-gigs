@@ -82,6 +82,15 @@
         <button class="chip accent" data-foryou="saved" aria-pressed="false">★ Saved</button>
         <button
           class="chip accent"
+          data-foryou="shared"
+          id="fy-shared"
+          style="display: none"
+          aria-pressed="false"
+        >
+          ↗ Shared
+        </button>
+        <button
+          class="chip accent"
           data-foryou="you"
           id="fy-you"
           style="display: none"
@@ -180,7 +189,7 @@
 
     <div id="error-container" aria-live="assertive"></div>
 
-    <div id="digest" class="digest" aria-live="polite"></div>
+    <div id="digest" class="digest"></div>
 
     <main id="results" aria-label="Gig results" aria-live="polite"></main>
 

@@ -71,4 +71,17 @@ describe("compareGigs", () => {
       "plain",
     ]);
   });
+
+  it("relevance ranks shared-with-you above matches and followed venues", () => {
+    const plain = gig({ id: "plain" });
+    const shared = gig({ id: "shared", shared: true });
+    const followed = gig({ id: "followed", followedVenue: true });
+    const you = gig({ id: "you", match: "you" });
+    expect(order("relevance", [plain, followed, you, shared])).toEqual([
+      "shared",
+      "you",
+      "followed",
+      "plain",
+    ]);
+  });
 });

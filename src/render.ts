@@ -26,6 +26,7 @@ export function decorate(): void {
     g.match = computeMatch(g, top, similar);
     g.isNew = isNewGig(g.id);
     g.followedVenue = state.followedVenues.has(g.venue.toLowerCase().trim());
+    g.shared = state.sharedSaved.has(g.id);
   }
 }
 
@@ -49,6 +50,7 @@ export function filteredGigs(): Gig[] {
     if (fy.size > 0) {
       let ok = false;
       if (fy.has("saved") && g.saved) ok = true;
+      if (fy.has("shared") && g.shared) ok = true;
       if (fy.has("you") && g.match === "you") ok = true;
       if (fy.has("similar") && (g.match === "you" || g.match === "similar")) ok = true;
       if (fy.has("venue") && g.followedVenue) ok = true;
@@ -107,6 +109,7 @@ function renderGig(g: Gig): string {
         : "";
   const newBadge = g.isNew && g.match ? `<span class="match-badge new">New</span>` : "";
   const venueBadge = g.followedVenue ? `<span class="match-badge venue">♥ Venue</span>` : "";
+  const sharedBadge = g.shared ? `<span class="match-badge shared">Shared</span>` : "";
   const id = escapeHtml(g.id);
   // Searches land on the act far more often than the (noisier) event title.
   const q = encodeURIComponent(g.artists[0] || g.name);
@@ -135,7 +138,7 @@ function renderGig(g: Gig): string {
       </div>
       <div class="gig-main">
         <div class="gig-venue-line">
-          <span>${escapeHtml(g.venue)}</span>${followBtn}<span>·</span>${capLine}${badge}${newBadge}${venueBadge}
+          <span>${escapeHtml(g.venue)}</span>${followBtn}<span>·</span>${capLine}${badge}${newBadge}${venueBadge}${sharedBadge}
         </div>
         <h3 class="gig-title">${escapeHtml(g.name)}</h3>
         ${genres ? `<div class="gig-genres">${genres}</div>` : ""}
@@ -209,7 +212,7 @@ function renderDigest(visible: Gig[]): void {
   const parts = [`${d.total} shown`];
   if (d.matches) parts.push(`${d.matches} for you`);
   if (d.freeCount) parts.push(`${d.freeCount} free`);
-  if (d.cheapest != null) parts.push(`from £${d.cheapest}`);
+  if (d.cheapest != null && d.cheapest > 0) parts.push(`from £${d.cheapest}`);
   if (d.busiest && d.busiest.count > 1)
     parts.push(`busiest ${fmtDateHeader(d.busiest.date)} (${d.busiest.count})`);
   const dayChip = state.dayFilter

@@ -28,13 +28,18 @@ function updateForYouChips(): void {
   byId("fy-you").style.display = hasLf ? "" : "none";
   byId("fy-similar").style.display = state.lastfm.similar.size > 0 ? "" : "none";
   byId("fy-venue").style.display = state.followedVenues.size > 0 ? "" : "none";
+  byId("fy-shared").style.display = state.sharedSaved.size > 0 ? "" : "none";
   if (!hasLf) state.foryou.delete("you");
   if (state.lastfm.similar.size === 0) state.foryou.delete("similar");
   if (state.followedVenues.size === 0) state.foryou.delete("venue");
+  if (state.sharedSaved.size === 0) state.foryou.delete("shared");
 }
 
-/** URL that reproduces the current filtered view (and shares saved picks). */
+/** URL that reproduces the current filtered view. When sharing from the Saved
+ *  filter it also carries your saved picks, which the recipient sees as a
+ *  separate "shared with you" set (it never touches their own saved list). */
 function shareUrl(): string {
+  const sharingSaved = state.foryou.has("saved") && state.saved.size > 0;
   const hash = serializeShare({
     window: state.window,
     days: [...state.days],
@@ -44,15 +49,17 @@ function shareUrl(): string {
     freeOnly: state.freeOnly,
     sort: state.sort,
     month: state.monthFilter || undefined,
-    foryou: [...state.foryou],
+    // "shared" is a receipt-only concept; never round-trip it into a link.
+    foryou: [...state.foryou].filter((f) => f !== "shared"),
     search: state.search || undefined,
-    saved: [...state.saved],
+    saved: sharingSaved ? [...state.saved] : undefined,
   });
   return location.origin + location.pathname + (hash ? "#" + hash : "");
 }
 
-/** Apply a shared view from the URL hash. Saved-gig ids are merged into the
- *  visitor's own saved list (additive and reversible). */
+/** Apply a shared view from the URL hash. Any shared saved-gig ids are kept in
+ *  a separate session set and surfaced via the "Shared" filter — they're never
+ *  merged into the visitor's own saved list. */
 function applyShare(): void {
   if (location.hash.length < 2) return;
   const s = parseShare(location.hash);
@@ -65,12 +72,14 @@ function applyShare(): void {
   if (s.sort) state.sort = s.sort;
   if (s.month) state.monthFilter = s.month;
   if (s.foryou) state.foryou = new Set(s.foryou);
-  if (s.search) state.search = s.search;
   if (s.saved && s.saved.length) {
-    for (const id of s.saved) state.saved.add(id);
-    saveSaved();
-    showToast(`Imported ${s.saved.length} saved gig${s.saved.length === 1 ? "" : "s"} from link.`);
+    state.sharedSaved = new Set(s.saved);
+    // The sender's "saved" filter becomes the recipient's "shared" filter.
+    state.foryou.delete("saved");
+    state.foryou.add("shared");
+    showToast(`${s.saved.length} gig${s.saved.length === 1 ? "" : "s"} shared with you.`);
   }
+  if (s.search) state.search = s.search;
 }
 
 function pickSurprise(): void {
@@ -125,6 +134,7 @@ function applyStateToUI(): void {
   byId<HTMLSelectElement>("sort-select").value = state.sort;
   byId<HTMLInputElement>("price-range").value = String(state.maxPrice);
   updatePriceUI();
+  byId<HTMLInputElement>("search-box").value = state.search;
   byId<HTMLInputElement>("lastfm-user").value = state.lastfm.user;
   updateForYouChips();
 }
